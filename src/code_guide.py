@@ -61,15 +61,13 @@ def code_lines(f):
         return [l.rstrip('\n') for l in input]
 
 
-def to_html(tree, root_attrs={}, out=XMLGenerator(sys.stdout)):
+def to_html(tree, root_attrs={}, out=XMLGenerator(sys.stdout), resource_prefix=""):
     if out is None:
         out = XMLGenerator(sys.stdout)
     
     def _element_to_html(e):
         if is_line(e):
-            out.startElement("pre", {})
-            out.characters(e.text)
-            out.endElement("pre")
+            element("pre", {}, e.text)
         elif is_highlight(e):
             out.startElement("div", {"class": "bootstro", "data-bootstro-content": e.description})
             for c in e.children:
@@ -78,14 +76,35 @@ def to_html(tree, root_attrs={}, out=XMLGenerator(sys.stdout)):
         else:
             raise ValueError("unexpected node: " + repr(e))
     
+    def element(name, attrs, text=None):
+        out.startElement(name, attrs)
+        if text is not None:
+            out.characters(text)
+        out.endElement(name)
+    
+    out.startElement("html", {})
+    out.startElement("head", {})
+    element("link", {"rel": "stylesheet", "type": "text/css", "href": resource_prefix + "bootstrap/css/bootstrap.min.css"})
+    element("link", {"rel": "stylesheet", "type": "text/css", "href": resource_prefix + "bootstro.js/bootstro.min.css"})
+    element("script", {"type": "text/javascript", "src": resource_prefix + "jquery-1.9.1.js"})
+    element("script", {"type": "text/javascript", "src": resource_prefix + "bootstrap/js/bootstrap.min.js"})
+    element("script", {"type": "text/javascript", "src": resource_prefix + "bootstro.js/bootstro.min.js"})
+    element("script", {"type": "text/javascript"}, """
+        $(document).ready(function(){
+            bootstro.start();
+        });
+    """)
+    out.endElement("head")
+    out.startElement("body", {})
     out.startElement("div", root_attrs)
     for e in tree.children:
         _element_to_html(e)
     out.endElement("div")
-
+    out.endElement("body")
+    out.endElement("html")
 
 
 if __name__ == '__main__':
     import sys
-    to_html(lines_to_tagged_tree(code_lines(sys.argv[1])))
+    to_html(lines_to_tagged_tree(code_lines(sys.argv[1])), resource_prefix="ext/")
 
