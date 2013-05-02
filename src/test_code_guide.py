@@ -8,10 +8,10 @@ from xml.sax.saxutils import XMLGenerator
 
 def test_vanilla_lines_to_tree():
     tree = lines_to_tagged_tree(["one", "two", "three"])
-    assert tree == root(
+    assert tree == root([
         line("one"), 
         line("two"), 
-        line("three"))
+        line("three")])
 
 def test_tagged_lines_to_simple_tree():
     tree = lines_to_tagged_tree([
@@ -22,12 +22,12 @@ def test_tagged_lines_to_simple_tree():
         "###",
         "trailing line"])
     
-    assert tree == root(
+    assert tree == root([
         line("leading line"), 
-        highlight("some explanatory text", 
+        highlight("some explanatory text", [
             line("tagged line 1"), 
-            line("tagged line 2")), 
-        line("trailing line"))
+            line("tagged line 2")]), 
+        line("trailing line")])
     
 
 def test_nested_tags():
@@ -41,28 +41,47 @@ def test_nested_tags():
             "t1 l2",
             "###"])
     
-    assert tree == root(
+    assert tree == root([
         line("l1"),
-        highlight("t1",
+        highlight("t1", [
             line("t1 l1"),
-            highlight("t1a",
-                line("  t1a l1")),
-            line("t1 l2")))
+            highlight("t1a", [
+                line("  t1a l1")]),
+            line("t1 l2")])])
+
+
+def test_multiple_lines_of_description():
+    tree = lines_to_tagged_tree([
+        "leading line",
+        "## some explanatory text",
+        "## more explanatory text",
+        "tagged line 1",
+        "tagged line 2",
+        "###",
+        "trailing line"])
+
+    assert tree == root([
+        line("leading line"), 
+        highlight("some explanatory text more explanatory text", [
+            line("tagged line 1"), 
+            line("tagged line 2")]), 
+        line("trailing line")])
+    
 
 
 def test_tags_to_html():
-    tree = root(
+    tree = root([
         line("l1"),
-        highlight("A",
+        highlight("A", [
             line("l2"),
             line("l3"),
-            highlight("B",
+            highlight("B", [
                 line("l4"),
-                line("l5")),
-            line("l6")),
-        highlight("C",
-            line("l7")),
-        line("l8"))
+                line("l5")]),
+            line("l6")]),
+        highlight("C", [
+            line("l7")]),
+        line("l8")])
     
     b = io.BytesIO()
     g = XMLGenerator(b)
