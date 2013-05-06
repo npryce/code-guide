@@ -7,6 +7,9 @@ body {
 	padding: 0.5em;
 	background-color: #f5f5f5;
 	border: 1px solid rgba(0,0,0,0.15);
+	width: auto;
+	font-size: 16px;
+	line-height: 24px;
 }
 
 .code-guide-code pre {
@@ -14,4 +17,6 @@ body {
 	padding: 0px;
 	margin: 0px;
 	background-color: transparent;
+	font-size: inherit;
+	line-height: inherit;
 }

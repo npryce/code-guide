@@ -57,7 +57,7 @@ def code_lines(f):
         return [l.rstrip('\n') for l in input]
 
 
-def to_html(tree, out=XMLGenerator(sys.stdout), resource_dir="", minified=True):
+def to_html(tree, out=XMLGenerator(sys.stdout), title=None, resource_dir="", minified=True):
     if out is None:
         out = XMLGenerator(sys.stdout)
     
@@ -87,6 +87,8 @@ def to_html(tree, out=XMLGenerator(sys.stdout), resource_dir="", minified=True):
     
     out.startElement("html", {})
     out.startElement("head", {})
+    if title is not None:
+        element("title", {}, text=title)
     element("link", {"rel": "stylesheet", "type": "text/css", "href": resource("bootstrap/css/bootstrap{min}.css")})
     element("link", {"rel": "stylesheet", "type": "text/css", "href": resource("bootstro/bootstro{min}.css")})
     element("link", {"rel": "stylesheet", "type": "text/css", "href": resource("code-guide.css")})
@@ -96,6 +98,15 @@ def to_html(tree, out=XMLGenerator(sys.stdout), resource_dir="", minified=True):
     element("script", {"type": "text/javascript", "src": resource("code-guide.js")})
     out.endElement("head")
     out.startElement("body", {})
+    if title is not None:
+        element("h1", {}, text=title)
+    
+    out.startElement("p", {})
+    element("button", {"class": "btn btn-primary",
+                       "type": "button",
+                       "onclick": "code_guide.start()"},
+            text="Explain!")
+    out.endElement("p")
     out.startElement("div", {"class": "code-guide-code"})
     for e in tree.children:
         _element_to_html(e)
@@ -108,5 +119,6 @@ def to_html(tree, out=XMLGenerator(sys.stdout), resource_dir="", minified=True):
 
 if __name__ == '__main__':
     import sys
-    to_html(lines_to_tagged_tree(code_lines(sys.argv[1])), resource_dir="resources")
+    code = lines_to_tagged_tree(code_lines(sys.argv[1]))
+    to_html(code, title=sys.argv[2] if len(sys.argv) > 2 else None, resource_dir="resources")
 
