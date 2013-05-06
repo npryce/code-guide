@@ -4,8 +4,12 @@ import sys
 import re
 from collections import namedtuple
 from itertools import groupby
-from  xml.sax.saxutils import XMLGenerator
+from xml.sax.saxutils import XMLGenerator
+from xml.sax.xmlreader import AttributesImpl
 
+
+_tag_start_pattern = re.compile("^\\s*##\\s+(?P<text>.+?)\\s*$")
+_tag_end_pattern = re.compile("^\\s*###\\s*$")
 
 root = namedtuple('root', ['children'])
 highlight = namedtuple('highlight', ['description', 'children'])
@@ -14,15 +18,6 @@ line = namedtuple('line', ['text'])
 _start = namedtuple('_start', ['description'])
 _end = namedtuple('_end', [])
 
-
-def is_line(elt):
-    return type(elt) == line
-
-def is_highlight(elt):
-    return type(elt) == highlight
-
-_tag_start_pattern = re.compile("^\\s*##\\s+(?P<text>.+?)\\s*$")
-_tag_end_pattern = re.compile("^\\s*###\\s*$")
 
 def is_tag_start(l):
     return _tag_start_pattern.match(l) is not None
@@ -46,9 +41,10 @@ def _delimited(line_iter):
             
 def _to_tree(delimited_lines):
     for e in delimited_lines:
-        if type(e) == _start:
+        t = type(e)
+        if t == _start:
             yield highlight(e.description, list(_to_tree(delimited_lines)))
-        elif type(e) == _end:
+        elif t == _end:
             return
         else:
             yield e
@@ -61,14 +57,21 @@ def code_lines(f):
         return [l.rstrip('\n') for l in input]
 
 
-def to_html(tree, root_attrs={}, out=XMLGenerator(sys.stdout), resource_prefix=""):
+def to_html(tree, root_attrs={}, out=XMLGenerator(sys.stdout), resource_dir="", minified=True):
     if out is None:
         out = XMLGenerator(sys.stdout)
     
+    resource_prefix = resource_dir if resource_dir == "" or resource_dir.endswith("/") else resource_dir + "/"
+    min_suffix = ".min" if minified else ""
+    
+    def resource(r):
+        return resource_prefix + r.format(min=min_suffix)
+    
     def _element_to_html(e):
-        if is_line(e):
+        t = type(e)
+        if t == line:
             element("pre", {}, e.text)
-        elif is_highlight(e):
+        elif t == highlight:
             out.startElement("div", {"class": "bootstro", "data-bootstro-content": e.description})
             for c in e.children:
                 _element_to_html(c)
@@ -84,16 +87,13 @@ def to_html(tree, root_attrs={}, out=XMLGenerator(sys.stdout), resource_prefix="
     
     out.startElement("html", {})
     out.startElement("head", {})
-    element("link", {"rel": "stylesheet", "type": "text/css", "href": resource_prefix + "bootstrap/css/bootstrap.min.css"})
-    element("link", {"rel": "stylesheet", "type": "text/css", "href": resource_prefix + "bootstro.js/bootstro.min.css"})
-    element("script", {"type": "text/javascript", "src": resource_prefix + "jquery-1.9.1.js"})
-    element("script", {"type": "text/javascript", "src": resource_prefix + "bootstrap/js/bootstrap.min.js"})
-    element("script", {"type": "text/javascript", "src": resource_prefix + "bootstro.js/bootstro.min.js"})
-    element("script", {"type": "text/javascript"}, """
-        $(document).ready(function(){
-            bootstro.start();
-        });
-    """)
+    element("link", {"rel": "stylesheet", "type": "text/css", "href": resource("bootstrap/css/bootstrap{min}.css")})
+    element("link", {"rel": "stylesheet", "type": "text/css", "href": resource("bootstro/bootstro{min}.css")})
+    element("link", {"rel": "stylesheet", "type": "text/css", "href": resource("code-guide.css")})
+    element("script", {"type": "text/javascript", "src": resource("jquery-1.9.1{min}.js")})
+    element("script", {"type": "text/javascript", "src": resource("bootstrap/js/bootstrap{min}.js")})
+    element("script", {"type": "text/javascript", "src": resource("bootstro/bootstro{min}.js")})
+    element("script", {"type": "text/javascript", "src": resource("code-guide.js")})
     out.endElement("head")
     out.startElement("body", {})
     out.startElement("div", root_attrs)
@@ -102,9 +102,11 @@ def to_html(tree, root_attrs={}, out=XMLGenerator(sys.stdout), resource_prefix="
     out.endElement("div")
     out.endElement("body")
     out.endElement("html")
+    
+    return out
 
 
 if __name__ == '__main__':
     import sys
-    to_html(lines_to_tagged_tree(code_lines(sys.argv[1])), resource_prefix="ext/")
+    to_html(lines_to_tagged_tree(code_lines(sys.argv[1])), resource_dir="resources")
 
