@@ -85,13 +85,12 @@ def test_tags_to_html():
             line("l7")]),
         line("l8")])
     
-
     b = io.BytesIO()
-    to_html(tree, {"class": "example"}, XMLGenerator(b))
+    to_html(tree, XMLGenerator(b))
     generated = XPathElementEvaluator(lxml.etree.fromstring(b.getvalue()))
     
-    assert_html_equals(generated("//div[@class='example']")[0], """
-        <div class="example">
+    assert_html_equals(generated("//div[@class='code-guide-code']")[0], """
+        <div class="code-guide-code">
           <pre>l1</pre>
           <div class="bootstro" data-bootstro-content="A">
             <pre>l2</pre>
@@ -114,12 +113,12 @@ def test_tags_to_html():
                "jquery-1.9.1.min.js",
                "code-guide.js"]
     
-    for s in scripts:
-        assert generated("/html/head/script[@src=$src][@type='text/javascript']", src=s)
-    
     stylesheets = ["bootstrap/css/bootstrap.min.css",
                    "bootstro/bootstro.min.css",
                    "code-guide.css"]
+        
+    for s in scripts:
+        assert generated("/html/head/script[@src=$src][@type='text/javascript']", src=s)
     
     for s in stylesheets:
         assert generated("/html/head/link[@href=$href][@rel='stylesheet'][@type='text/css']", href=s)

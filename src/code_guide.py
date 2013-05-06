@@ -57,7 +57,7 @@ def code_lines(f):
         return [l.rstrip('\n') for l in input]
 
 
-def to_html(tree, root_attrs={}, out=XMLGenerator(sys.stdout), resource_dir="", minified=True):
+def to_html(tree, out=XMLGenerator(sys.stdout), resource_dir="", minified=True):
     if out is None:
         out = XMLGenerator(sys.stdout)
     
@@ -96,7 +96,7 @@ def to_html(tree, root_attrs={}, out=XMLGenerator(sys.stdout), resource_dir="", 
     element("script", {"type": "text/javascript", "src": resource("code-guide.js")})
     out.endElement("head")
     out.startElement("body", {})
-    out.startElement("div", root_attrs)
+    out.startElement("div", {"class": "code-guide-code"})
     for e in tree.children:
         _element_to_html(e)
     out.endElement("div")
