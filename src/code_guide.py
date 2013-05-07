@@ -9,7 +9,7 @@ from xml.sax.xmlreader import AttributesImpl
 
 
 _tag_start_pattern = re.compile("^\\s*##\\s+(?P<text>.+?)\\s*$")
-_tag_end_pattern = re.compile("^\\s*###\\s*$")
+_tag_end_pattern = re.compile("^\\s*##\\.\\s*$")
 
 root = namedtuple('root', ['children'])
 highlight = namedtuple('highlight', ['description', 'children'])
@@ -26,7 +26,7 @@ def is_tag_end(l):
     return _tag_end_pattern.match(l)
 
 def _comment_text(tag_start_lines):
-    return " ".join(_tag_start_pattern.match(l).group("text") for l in tag_start_lines)
+    return "\n".join(_tag_start_pattern.match(l).group("text") for l in tag_start_lines)
 
 def _delimited(line_iter):
     for is_start, lines in groupby(line_iter, is_tag_start):

@@ -21,7 +21,7 @@ def test_tagged_lines_to_simple_tree():
         "## some explanatory text",
         "tagged line 1",
         "tagged line 2",
-        "###",
+        "##.",
         "trailing line"])
     
     assert tree == root([
@@ -39,9 +39,9 @@ def test_nested_tags():
             "t1 l1",
             "  ## t1a",
             "  t1a l1",
-            "  ###",
+            "  ##.",
             "t1 l2",
-            "###"])
+            "##."])
     
     assert tree == root([
         line("l1"),
@@ -59,12 +59,12 @@ def test_multiple_lines_of_description():
         "## more explanatory text",
         "tagged line 1",
         "tagged line 2",
-        "###",
+        "##.",
         "trailing line"])
 
     assert tree == root([
         line("leading line"), 
-        highlight("some explanatory text more explanatory text", [
+        highlight("some explanatory text\nmore explanatory text", [
             line("tagged line 1"), 
             line("tagged line 2")]), 
         line("trailing line")])
