@@ -86,6 +86,16 @@ def test_title():
                     line("a line")])])
 
 
+def test_intro():
+    tree = lines_to_tagged_tree([
+            "### first line of intro"
+            "### another line of intro",
+            "",
+            "a line"])
+    
+    assert tree == root(intro="first line of intro\nanother line of intro", children=[
+            line(""), 
+            line("a line")])
 
 
 tree = root(title="Example Code", intro="Intro Text", children=[
