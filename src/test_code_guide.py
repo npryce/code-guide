@@ -92,6 +92,7 @@ tree = root(title="Example Code", intro="Intro Text", children=[
         line("l1"),
         highlight("A", [
                 line("l2"),
+                line(""),
                 line("l3"),
                 highlight("B", [
                         line("l4"),
@@ -125,6 +126,7 @@ def test_code_translated_to_html_div():
           <pre>l1</pre>
           <div class="bootstro" data-bootstro-content="A">
             <pre>l2</pre>
+            <pre> </pre>
             <pre>l3</pre>
             <div class="bootstro" data-bootstro-content="B">
               <pre>l4</pre>
