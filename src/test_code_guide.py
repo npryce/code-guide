@@ -124,17 +124,17 @@ def test_code_translated_to_html_div():
     assert_html_equals(generated("//div[@class='code-guide-code']")[0], """
         <div class="code-guide-code">
           <pre>l1</pre>
-          <div class="bootstro" data-bootstro-content="A">
+          <div class="bootstro" data-bootstro-content="A" data-bootstro-placement="right" data-bootstro-width="25%">
             <pre>l2</pre>
             <pre> </pre>
             <pre>l3</pre>
-            <div class="bootstro" data-bootstro-content="B">
+            <div class="bootstro" data-bootstro-content="B" data-bootstro-placement="right" data-bootstro-width="25%">
               <pre>l4</pre>
               <pre>l5</pre>
             </div>
             <pre>l6</pre>
           </div>
-          <div class="bootstro" data-bootstro-content="C">
+          <div class="bootstro" data-bootstro-content="C" data-bootstro-placement="right" data-bootstro-width="25%">
             <pre>l7</pre>
           </div>
           <pre>l8</pre>

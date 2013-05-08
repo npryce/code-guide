@@ -115,7 +115,11 @@ def to_html(root, out=XMLGenerator(sys.stdout), resource_dir="", minified=True):
         if t == line:
             element("pre", {}, e.text if e.text != "" else " ")
         elif t == highlight:
-            out.startElement("div", {"class": "bootstro", "data-bootstro-content": e.description})
+            out.startElement("div", {
+                    "class": "bootstro", 
+                    "data-bootstro-content": e.description,
+                    "data-bootstro-placement": "right",
+                    "data-bootstro-width": "25%"})
             for c in e.children:
                 _element_to_html(c)
             out.endElement("div")
