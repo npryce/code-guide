@@ -4,12 +4,14 @@ import sys
 import re
 from collections import namedtuple
 from itertools import groupby
-from xml.sax.saxutils import XMLGenerator
+import xml.sax
+from xml.sax.saxutils import XMLGenerator, XMLFilterBase
 from xml.sax.xmlreader import AttributesImpl
+from markdown import markdown
 
 _title_pattern = re.compile("^\\s*####\\s*(?P<text>.+?)\\s*####\\s*$")
 _intro_pattern = re.compile("^\\s*### (?P<text>.+?)\\s*$")
-_tag_start_pattern = re.compile("^\\s*##\\s+(?P<text>.+?)\\s*$")
+_tag_start_pattern = re.compile("^\\s*##\\s*((?P<step>\[[:digit:]+\])\\s*)?(?P<text>.*?)\\s*$")
 _tag_end_pattern = re.compile("^\\s*##\\.\\s*$")
 
 _root = namedtuple('root', ['children', 'title', 'intro'])
@@ -27,35 +29,36 @@ def _join_text(tag_start_lines, pattern):
 def _significant_text(line, pattern):
     return pattern.match(line).group("text")
 
-def _to_start(lines):
+def _start_group(lines):
     yield _start(_join_text(lines, _tag_start_pattern))
 
-def _to_end(lines):
+def _end_group(lines):
     for l in lines:
         yield _end()
 
-def _to_intro(lines):
+def _intro_group(lines):
     yield _intro(_join_text(lines, _intro_pattern))
 
-def _to_line(lines):
+def _line_group(lines):
     for l in lines:
         yield line(l)
 
-def _to_title(lines):
+def _title_group(lines):
     for l in lines:
         yield _title(_significant_text(l, _title_pattern))
 
+# The order in which these patterns are checked is important to avoid ambiguity.
 def line_group_type(l):
-    if _tag_start_pattern.match(l) is not None:
-        return _to_start
-    elif _tag_end_pattern.match(l) is not None:
-        return _to_end
-    elif _title_pattern.match(l) is not None:
-        return _to_title
+    if _title_pattern.match(l) is not None:
+        return _title_group
     elif _intro_pattern.match(l) is not None:
-        return _to_intro
+        return _intro_group
+    elif _tag_end_pattern.match(l) is not None:
+        return _end_group
+    elif _tag_start_pattern.match(l) is not None:
+        return _start_group
     else:
-        return _to_line
+        return _line_group
 
 def _delimited(line_iter):
     for group_type, lines in groupby(line_iter, line_group_type):
@@ -100,7 +103,20 @@ def code_lines(f):
         return [l.rstrip('\n') for l in input]
 
 
-def to_html(root, out=XMLGenerator(sys.stdout), resource_dir="", minified=True):
+class ElementOnlyFilter(XMLFilterBase):
+    def startDocument(self):
+        pass
+    
+    def endDocument(self):
+        pass
+
+def stream_markdown_as_html(markdown_str, out):
+    xhtml_str = markdown(markdown_str, safe_mode=True, output_format="xhtml5")
+    filter = ElementOnlyFilter()
+    filter.setContentHandler(out)
+    xml.sax.parseString(xhtml_str, filter)
+
+def to_html(root, out=None, resource_dir="", minified=True):
     if out is None:
         out = XMLGenerator(sys.stdout)
     
@@ -110,7 +126,7 @@ def to_html(root, out=XMLGenerator(sys.stdout), resource_dir="", minified=True):
     def resource(r):
         return resource_prefix + r.format(min=min_suffix)
     
-    def _element_to_html(e):
+    def element_to_html(e):
         t = type(e)
         if t == line:
             element("pre", {}, e.text if e.text != "" else " ")
@@ -121,7 +137,7 @@ def to_html(root, out=XMLGenerator(sys.stdout), resource_dir="", minified=True):
                     "data-bootstro-placement": "right",
                     "data-bootstro-width": "25%"})
             for c in e.children:
-                _element_to_html(c)
+                element_to_html(c)
             out.endElement("div")
         else:
             raise ValueError("unexpected node: " + repr(e))
@@ -150,7 +166,9 @@ def to_html(root, out=XMLGenerator(sys.stdout), resource_dir="", minified=True):
         element("h1", {}, text=root.title)
     
     if root.intro is not None:
-        element("p", {"class": "code-guide-intro"}, text=root.intro)
+        out.startElement("div", {"class": "code-guide-intro"})
+        stream_markdown_as_html(root.intro, out)
+        out.endElement("div")
     
     out.startElement("p", {})
     element("button", 
@@ -161,7 +179,7 @@ def to_html(root, out=XMLGenerator(sys.stdout), resource_dir="", minified=True):
     out.endElement("p")
     out.startElement("div", {"class": "code-guide-code"})
     for e in root.children:
-        _element_to_html(e)
+        element_to_html(e)
     out.endElement("div")
     out.endElement("body")
     out.endElement("html")

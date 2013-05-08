@@ -72,13 +72,28 @@ def test_multiple_lines_of_description():
             line("tagged line 2")]), 
         line("trailing line")])
 
+def test_blank_lines_in_description():
+    tree = lines_to_tagged_tree([
+            "line 1",
+            "## explanation line 1",
+            "##",
+            "## explanation line 2",
+            "line 2",
+            "##."])
+    
+    assert tree == root([
+            line("line 1"),
+            highlight("explanation line 1\n\nexplanation line 2", [
+                    line("line 2")])])
+    
 
 def test_title():
     tree = lines_to_tagged_tree([
             "#### The Title ####",
             "",
             "## some explanatory text",
-            "a line"])
+            "a line",
+            "##."])
     
     assert tree == root(title="The Title", children=[
             line(""),
@@ -86,14 +101,15 @@ def test_title():
                     line("a line")])])
 
 
-def test_intro():
+def test_title_and_intro():
     tree = lines_to_tagged_tree([
-            "### first line of intro"
+            "#### Title ####",
+            "### first line of intro",
             "### another line of intro",
             "",
             "a line"])
     
-    assert tree == root(intro="first line of intro\nanother line of intro", children=[
+    assert tree == root(title="Title", intro="first line of intro\nanother line of intro", children=[
             line(""), 
             line("a line")])
 
@@ -187,7 +203,7 @@ def test_title():
 def test_intro():
     generated = code_to_html(tree)
     
-    assert generated("/html/body//p[@class='code-guide-intro'][text() = 'Intro Text']")
+    assert generated("/html/body//div[@class='code-guide-intro']/p[text() = 'Intro Text']")
 
 def assert_html_equals(actual, expected_as_str):
     actual_norm = normalised(lxml.etree.tostring(actual, method="c14n", pretty_print=False))
