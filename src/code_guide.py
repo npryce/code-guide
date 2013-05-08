@@ -7,57 +7,100 @@ from itertools import groupby
 from xml.sax.saxutils import XMLGenerator
 from xml.sax.xmlreader import AttributesImpl
 
-
+_title_pattern = re.compile("^\\s*####\\s*(?P<text>.+?)\\s*####\\s*$")
+_intro_pattern = re.compile("^\\s*### (?P<text>.+?)\\s*$")
 _tag_start_pattern = re.compile("^\\s*##\\s+(?P<text>.+?)\\s*$")
 _tag_end_pattern = re.compile("^\\s*##\\.\\s*$")
 
-root = namedtuple('root', ['children'])
+_root = namedtuple('root', ['children', 'title', 'intro'])
 highlight = namedtuple('highlight', ['description', 'children'])
 line = namedtuple('line', ['text'])
+_title = namedtuple('title', ['text'])
+_intro = namedtuple('intro', ['text'])
 
 _start = namedtuple('_start', ['description'])
 _end = namedtuple('_end', [])
 
+def _join_text(tag_start_lines, pattern):
+    return "\n".join(_significant_text(l, pattern) for l in tag_start_lines)
 
-def is_tag_start(l):
-    return _tag_start_pattern.match(l) is not None
+def _significant_text(line, pattern):
+    return pattern.match(line).group("text")
 
-def is_tag_end(l):
-    return _tag_end_pattern.match(l)
+def _to_start(lines):
+    yield _start(_join_text(lines, _tag_start_pattern))
 
-def _comment_text(tag_start_lines):
-    return "\n".join(_tag_start_pattern.match(l).group("text") for l in tag_start_lines)
+def _to_end(lines):
+    for l in lines:
+        yield _end()
+
+def _to_intro(lines):
+    yield _intro(_join_text(lines, _intro_pattern))
+
+def _to_line(lines):
+    for l in lines:
+        yield line(l)
+
+def _to_title(lines):
+    for l in lines:
+        yield _title(_significant_text(l, _title_pattern))
+
+def line_group_type(l):
+    if _tag_start_pattern.match(l) is not None:
+        return _to_start
+    elif _tag_end_pattern.match(l) is not None:
+        return _to_end
+    elif _title_pattern.match(l) is not None:
+        return _to_title
+    elif _intro_pattern.match(l) is not None:
+        return _to_intro
+    else:
+        return _to_line
 
 def _delimited(line_iter):
-    for is_start, lines in groupby(line_iter, is_tag_start):
-        if is_start:
-            yield _start(_comment_text(lines))
-        else:
-            for l in lines:
-                if is_tag_end(l):
-                    yield _end()
-                else:
-                    yield line(l)
+    for group_type, lines in groupby(line_iter, line_group_type):
+        for e in group_type(lines):
+            yield e
             
 def _to_tree(delimited_lines):
     for e in delimited_lines:
         t = type(e)
         if t == _start:
-            yield highlight(e.description, list(_to_tree(delimited_lines)))
+            yield highlight(e.description, list(filter(valid_subtree_node, _to_tree(delimited_lines))))
         elif t == _end:
             return
         else:
             yield e
 
+def valid_subtree_node(e):
+    t = type(e)
+    return t not in (_title, _intro)
+
 def lines_to_tagged_tree(lines):
-    return root(list(_to_tree(_delimited(lines))))
+    parse = list(_to_tree(_delimited(lines)))
+    children = filter(valid_subtree_node, parse)
+    titles = filter(lambda e: type(e) == _title, parse)
+    intros = filter(lambda e: type(e) == _intro, parse)
+    
+    return _root(title=to_text("title", titles), intro=to_text("intro",intros), children=children)
+
+
+def to_text(name, es):
+    n = len(es)
+    if n == 1:
+        return es[0].text
+    elif n == 0:
+        return None
+    else:
+        raise ValueError("too many "+what+": there must be zero or one.")
+
 
 def code_lines(f):
     with open(f) as input:
         return [l.rstrip('\n') for l in input]
 
 
-def to_html(tree, out=XMLGenerator(sys.stdout), title=None, resource_dir="", minified=True):
+def to_html(root, out=XMLGenerator(sys.stdout), resource_dir="", minified=True):
     if out is None:
         out = XMLGenerator(sys.stdout)
     
@@ -87,8 +130,8 @@ def to_html(tree, out=XMLGenerator(sys.stdout), title=None, resource_dir="", min
     
     out.startElement("html", {})
     out.startElement("head", {})
-    if title is not None:
-        element("title", {}, text=title)
+    if root.title is not None:
+        element("title", {}, text=root.title)
     element("link", {"rel": "stylesheet", "type": "text/css", "href": resource("bootstrap/css/bootstrap{min}.css")})
     element("link", {"rel": "stylesheet", "type": "text/css", "href": resource("bootstro/bootstro{min}.css")})
     element("link", {"rel": "stylesheet", "type": "text/css", "href": resource("code-guide.css")})
@@ -98,17 +141,22 @@ def to_html(tree, out=XMLGenerator(sys.stdout), title=None, resource_dir="", min
     element("script", {"type": "text/javascript", "src": resource("code-guide.js")})
     out.endElement("head")
     out.startElement("body", {})
-    if title is not None:
-        element("h1", {}, text=title)
+
+    if root.title is not None:
+        element("h1", {}, text=root.title)
+    
+    if root.intro is not None:
+        element("p", {"class": "code-guide-intro"}, text=root.intro)
     
     out.startElement("p", {})
-    element("button", {"class": "btn btn-primary",
-                       "type": "button",
-                       "onclick": "code_guide.start()"},
+    element("button", 
+            {"class": "btn btn-primary",
+             "type": "button",
+             "onclick": "code_guide.start()"},
             text="Explain!")
     out.endElement("p")
     out.startElement("div", {"class": "code-guide-code"})
-    for e in tree.children:
+    for e in root.children:
         _element_to_html(e)
     out.endElement("div")
     out.endElement("body")
@@ -120,5 +168,5 @@ def to_html(tree, out=XMLGenerator(sys.stdout), title=None, resource_dir="", min
 if __name__ == '__main__':
     import sys
     code = lines_to_tagged_tree(code_lines(sys.argv[1]))
-    to_html(code, title=sys.argv[2] if len(sys.argv) > 2 else None, resource_dir="resources")
+    to_html(code, resource_dir="resources")
 

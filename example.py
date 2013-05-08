@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-### Button Blink ###
+#### Button Blink ####
 
 ### This example extends the blink program to read from a GPIO input
 ### pin connected to a push-button.  The LED will only blink while you
@@ -13,7 +13,7 @@ from time import sleep
 from quick2wire.gpio import pins, In, Out
 ##.
 
-## blah blah
+## Get hold of the input and output pins from the bank of GPIO pins.
 button = pins.pin(0, direction=In)
 led = pins.pin(1, direction=Out)
 ##.
@@ -24,12 +24,17 @@ led = pins.pin(1, direction=Out)
 with button, led:
 ##.
     print("ready")
-    ## the program then runs an infinite loop.  Each time round the
+    ## The program then runs an infinite loop.  Each time round the
     ## loop, v alternates between True and False.
     for v in cycle([True,False]):
-        ## read button and assign to LED
+        ## Read the state of the button pin and combine with v to get
+        ## the new state to be written to the LED pin.  When both the
+        ## button pin and v are True, this will set the LED pin to
+        ## True. If either are False, this sets the LED pin to False.
         led.value = v and button.value
         ##.
+        ## Sleep a bit before the next iteration, so that the LED
+        ## blinks on-and-off once per second.
         sleep(0.5)
     ##.
 
