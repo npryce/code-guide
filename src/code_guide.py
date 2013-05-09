@@ -128,7 +128,39 @@ def stream_html(out, html_str):
 def stream_markdown_as_html(out, markdown_str):
     stream_html(out, markdown(markdown_str, safe_mode=True, output_format="xhtml5"))
 
-def to_html(root, out=None, resource_dir="", minified=True):
+
+def _element_to_html(out, e):
+    t = type(e)
+    if t == line:
+        element(out, "pre", {}, e.text if e.text != "" else " ")
+    elif t == _explanation:
+        attrs = {
+            "class": "bootstro", 
+            "data-bootstro-content": markdown(e.text),
+            "data-bootstro-html": "true",
+            "data-bootstro-placement": "right",
+            "data-bootstro-width": "25%"}
+            
+        if e.index is not None:
+            attrs["data-bootstro-step"] = str(e.index - 1)
+                
+        out.startElement("div", attrs)
+                    
+        for c in e.children:
+            _element_to_html(out, c)
+        out.endElement("div")
+    else:
+        raise ValueError("unexpected node: " + repr(e))
+
+
+def element(out, name, attrs, text=None):
+    out.startElement(name, attrs)
+    if text is not None:
+        out.characters(text)
+    out.endElement(name)
+    
+
+def to_html(root, out=None, language="python", resource_dir="", minified=True):
     if out is None:
         out = XMLGenerator(sys.stdout)
     
@@ -138,51 +170,22 @@ def to_html(root, out=None, resource_dir="", minified=True):
     def resource(r):
         return resource_prefix + r.format(min=min_suffix)
     
-    def element_to_html(e):
-        t = type(e)
-        if t == line:
-            element("pre", {}, e.text if e.text != "" else " ")
-        elif t == _explanation:
-            attrs = {
-                "class": "bootstro", 
-                "data-bootstro-content": markdown(e.text),
-                "data-bootstro-html": "true",
-                "data-bootstro-placement": "right",
-                "data-bootstro-width": "25%"}
-            
-            if e.index is not None:
-                attrs["data-bootstro-step"] = str(e.index - 1)
-                
-            out.startElement("div", attrs)
-                    
-            for c in e.children:
-                element_to_html(c)
-            out.endElement("div")
-        else:
-            raise ValueError("unexpected node: " + repr(e))
-    
-    def element(name, attrs, text=None):
-        out.startElement(name, attrs)
-        if text is not None:
-            out.characters(text)
-        out.endElement(name)
-    
     out.startElement("html", {})
     out.startElement("head", {})
     if root.title is not None:
-        element("title", {}, text=root.title)
-    element("link", {"rel": "stylesheet", "type": "text/css", "href": resource("bootstrap/css/bootstrap{min}.css")})
-    element("link", {"rel": "stylesheet", "type": "text/css", "href": resource("bootstro/bootstro{min}.css")})
-    element("link", {"rel": "stylesheet", "type": "text/css", "href": resource("code-guide.css")})
-    element("script", {"type": "text/javascript", "src": resource("jquery-1.9.1{min}.js")})
-    element("script", {"type": "text/javascript", "src": resource("bootstrap/js/bootstrap{min}.js")})
-    element("script", {"type": "text/javascript", "src": resource("bootstro/bootstro{min}.js")})
-    element("script", {"type": "text/javascript", "src": resource("code-guide.js")})
+        element(out, "title", {}, text=root.title)
+    element(out, "link", {"rel": "stylesheet", "type": "text/css", "href": resource("bootstrap/css/bootstrap{min}.css")})
+    element(out, "link", {"rel": "stylesheet", "type": "text/css", "href": resource("bootstro/bootstro{min}.css")})
+    element(out, "link", {"rel": "stylesheet", "type": "text/css", "href": resource("code-guide.css")})
+    element(out, "script", {"type": "text/javascript", "src": resource("jquery-1.9.1{min}.js")})
+    element(out, "script", {"type": "text/javascript", "src": resource("bootstrap/js/bootstrap{min}.js")})
+    element(out, "script", {"type": "text/javascript", "src": resource("bootstro/bootstro{min}.js")})
+    element(out, "script", {"type": "text/javascript", "src": resource("code-guide.js")})
     out.endElement("head")
     out.startElement("body", {})
     
     if root.title is not None:
-        element("h1", {}, text=root.title)
+        element(out, "h1", {}, text=root.title)
     
     if root.intro is not None:
         out.startElement("div", {"class": "code-guide-intro"})
@@ -190,7 +193,7 @@ def to_html(root, out=None, resource_dir="", minified=True):
         out.endElement("div")
     
     out.startElement("p", {})
-    element("button", 
+    element(out, "button", 
             {"class": "btn btn-primary",
              "type": "button",
              "onclick": "code_guide.start()"},
@@ -198,7 +201,7 @@ def to_html(root, out=None, resource_dir="", minified=True):
     out.endElement("p")
     out.startElement("div", {"class": "code-guide-code"})
     for e in root.children:
-        element_to_html(e)
+        _element_to_html(out, e)
     out.endElement("div")
     
     stream_html(out, """
@@ -209,12 +212,9 @@ def to_html(root, out=None, resource_dir="", minified=True):
     
     out.endElement("body")
     out.endElement("html")
-    
-    return out
 
 
 if __name__ == '__main__':
-    import sys
     code = lines_to_tagged_tree(code_lines(sys.argv[1]))
-    to_html(code, resource_dir="resources")
+    to_html(code, resource_dir="resources", language="python")
 
