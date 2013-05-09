@@ -7,6 +7,9 @@ from itertools import groupby, islice
 import xml.sax
 from xml.sax.saxutils import XMLGenerator, XMLFilterBase
 from markdown import markdown
+import pygments
+import pygments.lexers
+from pygments.formatters import HtmlFormatter
 
 _title_pattern = re.compile("^\\s*####\\s*(?P<text>.+?)\\s*####\\s*$")
 _intro_pattern = re.compile("^\\s*### (?P<text>.+?)\\s*$")
@@ -129,10 +132,10 @@ def stream_markdown_as_html(out, markdown_str):
     stream_html(out, markdown(markdown_str, safe_mode=True, output_format="xhtml5"))
 
 
-def _element_to_html(out, e):
+def _code_tree_to_html(out, e, code_lexer):
     t = type(e)
     if t == line:
-        element(out, "pre", {}, e.text if e.text != "" else " ")
+        stream_html(out, pygments.highlight(e.text or " ", code_lexer, HtmlFormatter(cssclass="", classprefix="code-guide-syntax-")))
     elif t == _explanation:
         attrs = {
             "class": "bootstro", 
@@ -147,7 +150,7 @@ def _element_to_html(out, e):
         out.startElement("div", attrs)
                     
         for c in e.children:
-            _element_to_html(out, c)
+            _code_tree_to_html(out, c, code_lexer)
         out.endElement("div")
     else:
         raise ValueError("unexpected node: " + repr(e))
@@ -164,6 +167,8 @@ def to_html(root, out=None, language="python", resource_dir="", minified=True):
     if out is None:
         out = XMLGenerator(sys.stdout)
     
+    code_lexer = pygments.lexers.get_lexer_by_name(language)
+    
     resource_prefix = resource_dir if resource_dir == "" or resource_dir.endswith("/") else resource_dir + "/"
     min_suffix = ".min" if minified else ""
     
@@ -176,6 +181,7 @@ def to_html(root, out=None, language="python", resource_dir="", minified=True):
         element(out, "title", {}, text=root.title)
     element(out, "link", {"rel": "stylesheet", "type": "text/css", "href": resource("bootstrap/css/bootstrap{min}.css")})
     element(out, "link", {"rel": "stylesheet", "type": "text/css", "href": resource("bootstro/bootstro{min}.css")})
+    element(out, "link", {"rel": "stylesheet", "type": "text/css", "href": resource("pygments.css")})
     element(out, "link", {"rel": "stylesheet", "type": "text/css", "href": resource("code-guide.css")})
     element(out, "script", {"type": "text/javascript", "src": resource("jquery-1.9.1{min}.js")})
     element(out, "script", {"type": "text/javascript", "src": resource("bootstrap/js/bootstrap{min}.js")})
@@ -199,9 +205,10 @@ def to_html(root, out=None, language="python", resource_dir="", minified=True):
              "onclick": "code_guide.start()"},
             text="Explain!")
     out.endElement("p")
+    
     out.startElement("div", {"class": "code-guide-code"})
     for e in root.children:
-        _element_to_html(out, e)
+        _code_tree_to_html(out, e, code_lexer)
     out.endElement("div")
     
     stream_html(out, """

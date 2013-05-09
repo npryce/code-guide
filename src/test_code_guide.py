@@ -157,6 +157,7 @@ scripts = ["bootstrap/js/bootstrap.min.js",
     
 stylesheets = ["bootstrap/css/bootstrap.min.css",
                "bootstro/bootstro.min.css",
+               "pygments/pygments.css",
                "code-guide.css"]
 
 def code_to_html(tree, **kwargs):
