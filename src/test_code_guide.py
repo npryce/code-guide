@@ -226,6 +226,18 @@ def test_intro():
     
     assert generated("/html/body//div[@class='code-guide-intro']/p[text() = 'Intro Text']")
 
+
+def test_explicit_ordering_as_html():
+    tree = root([
+            explanation("e2", index=2, children=[line("l1")]),
+            explanation("e1", index=1, children=[line("l2")])])
+    
+    generated = code_to_html(tree)
+    
+    assert generated("string(//*[@data-bootstro-step='0'])") == "l2"
+    assert generated("string(//*[@data-bootstro-step='1'])") == "l1"
+
+
 def assert_html_equals(actual, expected_as_str):
     actual_norm = normalised(lxml.etree.tostring(actual, method="c14n", pretty_print=False))
     expected_norm = normalised(expected_as_str)
