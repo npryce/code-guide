@@ -26,3 +26,7 @@ body {
 	font-size: smaller;
 	margin-top: 2em;
 }
+
+.bootstro-highlight {
+	border-radius: 2px;
+}

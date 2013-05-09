@@ -157,7 +157,7 @@ scripts = ["bootstrap/js/bootstrap.min.js",
     
 stylesheets = ["bootstrap/css/bootstrap.min.css",
                "bootstro/bootstro.min.css",
-               "pygments/pygments.css",
+               "pygments.css",
                "code-guide.css"]
 
 def code_to_html(tree, **kwargs):
@@ -166,31 +166,19 @@ def code_to_html(tree, **kwargs):
     return XPathElementEvaluator(lxml.etree.fromstring(b.getvalue()))
 
 
-def test_code_translated_to_html_div():    
+def _lines(tree):
+    for c in tree.children:
+        if type(c) == line:
+            yield " " if c.text == "" else c.text
+        else:
+            for l in _lines(c):
+                yield l
+
+
+def test_code_translated_to_html_div():
     generated = code_to_html(tree)
     
-    assert_html_equals(generated("//div[@class='code-guide-code']")[0], """
-        <div class="code-guide-code">
-          <pre>l1</pre>
-          <div class="bootstro" data-bootstro-content="&lt;p&gt;A&lt;/p&gt;" data-bootstro-html="true" 
-                                data-bootstro-placement="right" data-bootstro-width="25%">
-            <pre>l2</pre>
-            <pre> </pre>
-            <pre>l3</pre>
-            <div class="bootstro" data-bootstro-content="&lt;p&gt;B&lt;/p&gt;" data-bootstro-html="true" 
-                                  data-bootstro-placement="right" data-bootstro-width="25%">
-              <pre>l4</pre>
-              <pre>l5</pre>
-            </div>
-            <pre>l6</pre>
-          </div>
-          <div class="bootstro" data-bootstro-content="&lt;p&gt;C&lt;/p&gt;" data-bootstro-html="true" 
-                                data-bootstro-placement="right" data-bootstro-width="25%">
-            <pre>l7</pre>
-          </div>
-          <pre>l8</pre>
-        </div>
-        """)
+    assert generated("string(//div[@class='code-guide-code'])") == "\n".join(_lines(tree)) + "\n"
 
 def test_script_and_stylesheet_links_in_head():
     generated = code_to_html(tree)
@@ -238,8 +226,8 @@ def test_explicit_ordering_as_html():
     
     generated = code_to_html(tree)
     
-    assert generated("string(//*[@data-bootstro-step='0'])") == "l2"
-    assert generated("string(//*[@data-bootstro-step='1'])") == "l1"
+    assert generated("string(//*[@data-bootstro-step='0'])") == "l2\n"
+    assert generated("string(//*[@data-bootstro-step='1'])") == "l1\n"
 
 
 def assert_html_equals(actual, expected_as_str):

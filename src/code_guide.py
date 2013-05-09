@@ -132,10 +132,11 @@ def stream_markdown_as_html(out, markdown_str):
     stream_html(out, markdown(markdown_str, safe_mode=True, output_format="xhtml5"))
 
 
+
 def _code_tree_to_html(out, e, code_lexer):
     t = type(e)
     if t == line:
-        stream_html(out, pygments.highlight(e.text or " ", code_lexer, HtmlFormatter(cssclass="", classprefix="code-guide-syntax-")))
+        stream_html(out, pygments.highlight(" " if e.text == "" else e.text, code_lexer, HtmlFormatter(cssclass="", classprefix="code-guide-syntax-")))
     elif t == _explanation:
         attrs = {
             "class": "bootstro", 
@@ -161,7 +162,17 @@ def element(out, name, attrs, text=None):
     if text is not None:
         out.characters(text)
     out.endElement(name)
+
+
+_scripts = ["jquery-1.9.1{min}.js",
+            "bootstrap/js/bootstrap{min}.js",
+           "bootstro/bootstro{min}.js",
+           "code-guide.js"]
     
+_stylesheets = ["bootstrap/css/bootstrap{min}.css",
+                "bootstro/bootstro{min}.css",
+                "pygments.css",
+                "code-guide.css"]
 
 def to_html(root, out=None, language="python", resource_dir="", minified=True):
     if out is None:
@@ -175,19 +186,23 @@ def to_html(root, out=None, language="python", resource_dir="", minified=True):
     def resource(r):
         return resource_prefix + r.format(min=min_suffix)
     
+    def stylesheet(relpath):
+        element(out, "link", {"rel": "stylesheet", "type": "text/css", "href": resource(relpath)})
+    
+    def script(relpath):
+        element(out, "script", {"type": "text/javascript", "src": resource(relpath)})
+    
     out.startElement("html", {})
+    
     out.startElement("head", {})
     if root.title is not None:
         element(out, "title", {}, text=root.title)
-    element(out, "link", {"rel": "stylesheet", "type": "text/css", "href": resource("bootstrap/css/bootstrap{min}.css")})
-    element(out, "link", {"rel": "stylesheet", "type": "text/css", "href": resource("bootstro/bootstro{min}.css")})
-    element(out, "link", {"rel": "stylesheet", "type": "text/css", "href": resource("pygments.css")})
-    element(out, "link", {"rel": "stylesheet", "type": "text/css", "href": resource("code-guide.css")})
-    element(out, "script", {"type": "text/javascript", "src": resource("jquery-1.9.1{min}.js")})
-    element(out, "script", {"type": "text/javascript", "src": resource("bootstrap/js/bootstrap{min}.js")})
-    element(out, "script", {"type": "text/javascript", "src": resource("bootstro/bootstro{min}.js")})
-    element(out, "script", {"type": "text/javascript", "src": resource("code-guide.js")})
+    for s in _stylesheets:
+        stylesheet(s)
+    for s in _scripts:
+        script(s)
     out.endElement("head")
+    
     out.startElement("body", {})
     
     if root.title is not None:
