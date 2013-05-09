@@ -217,8 +217,8 @@ def test_explain_button():
 def test_title():
     generated = code_to_html(tree)
     
-    assert generated("/html/body//h1[text() = 'Example Code']")
-    assert generated("/html/head/title[text() = 'Example Code']")
+    assert generated("string(/html/body//h1)" == "Example Code"
+    assert generated("string(/html/head/title)" == "Example Code"
 
 
 def test_intro():
