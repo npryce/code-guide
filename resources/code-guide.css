@@ -21,3 +21,8 @@ body {
 	font-size: inherit;
 	line-height: inherit;
 }
+
+.colophon {
+	font-size: smaller;
+	margin-top: 2em;
+}

@@ -120,11 +120,13 @@ class ElementOnlyFilter(XMLFilterBase):
     def endDocument(self):
         pass
 
-def stream_markdown_as_html(markdown_str, out):
-    xhtml_str = markdown(markdown_str, safe_mode=True, output_format="xhtml5")
+def stream_html(out, html_str):
     filter = ElementOnlyFilter()
     filter.setContentHandler(out)
-    xml.sax.parseString(xhtml_str, filter)
+    xml.sax.parseString(html_str, filter)
+
+def stream_markdown_as_html(out, markdown_str):
+    stream_html(out, markdown(markdown_str, safe_mode=True, output_format="xhtml5"))
 
 def to_html(root, out=None, resource_dir="", minified=True):
     if out is None:
@@ -178,13 +180,13 @@ def to_html(root, out=None, resource_dir="", minified=True):
     element("script", {"type": "text/javascript", "src": resource("code-guide.js")})
     out.endElement("head")
     out.startElement("body", {})
-
+    
     if root.title is not None:
         element("h1", {}, text=root.title)
     
     if root.intro is not None:
         out.startElement("div", {"class": "code-guide-intro"})
-        stream_markdown_as_html(root.intro, out)
+        stream_markdown_as_html(out, root.intro)
         out.endElement("div")
     
     out.startElement("p", {})
@@ -198,6 +200,13 @@ def to_html(root, out=None, resource_dir="", minified=True):
     for e in root.children:
         element_to_html(e)
     out.endElement("div")
+    
+    stream_html(out, """
+       <div class="colophon">
+         <p>Generated with <a href="http://github.com/npryce/code-guide">Code Guide</a>.</p>
+       </div>
+       """);
+    
     out.endElement("body")
     out.endElement("html")
     
