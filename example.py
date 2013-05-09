@@ -23,16 +23,19 @@ led = pins.pin(1, direction=Out)
 with button, led:
 ##.
     print("ready")
-    ## [1] The program then runs an infinite loop.  Each time round
-    ## the loop, v alternates between True and False.
-    for v in cycle([True,False]):
-        ## [2] Read the state of the button pin and combine with v to get
-        ## the new state to be written to the LED pin.  When both the
-        ## button pin and v are True, this will set the LED pin to
-        ## True. If either are False, this sets the LED pin to False.
-        led.value = v and button.value
+    ## [1] This is the core of the program: an infinite loop that
+    ## reads from and writes to the GPIO pins connected to the button
+    ## and LED.  Each time round the loop, _blink_state_ alternates
+    ## between 1 (voltage high) and 0 (voltage low).
+    for blink_state in cycle([1,0]):
+        ## [2] Read the state of the button pin multiply it with
+        ## _blink_state_ to get the new state to be written to the LED
+        ## pin.  When both the button pin and _blink_state_ are 1,
+        ## this will set the LED pin to 1. If either are 0, this will
+        ## set the LED pin to 0.
+        led.value = blink_state and button.value
         ##.
         ## [3] Sleep a bit before the next iteration, so that the LED
-        ## blinks on-and-off once per second.
+        ## blinks on and off once per second.
         sleep(0.5)
     ##.

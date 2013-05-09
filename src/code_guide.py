@@ -143,7 +143,8 @@ def to_html(root, out=None, resource_dir="", minified=True):
         elif t == _explanation:
             attrs = {
                 "class": "bootstro", 
-                "data-bootstro-content": e.text,
+                "data-bootstro-content": markdown(e.text),
+                "data-bootstro-html": "true",
                 "data-bootstro-placement": "right",
                 "data-bootstro-width": "25%"}
             
