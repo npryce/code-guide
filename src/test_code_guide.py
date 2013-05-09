@@ -200,7 +200,7 @@ def test_script_and_stylesheet_links_in_head():
 
 def test_script_and_stylesheet_links_can_be_prefixed_with_resource_directory():
     generated = code_to_html(tree, resource_dir="over/here")
-        
+    
     for s in scripts:
         assert generated("/html/head/script[@src=$src][@type='text/javascript']", src="over/here/"+s)
     
@@ -217,8 +217,8 @@ def test_explain_button():
 def test_title():
     generated = code_to_html(tree)
     
-    assert generated("string(/html/body//h1)" == "Example Code"
-    assert generated("string(/html/head/title)" == "Example Code"
+    assert generated("string(/html/body//h1)") == "Example Code"
+    assert generated("string(/html/head/title)") == "Example Code"
 
 
 def test_intro():
