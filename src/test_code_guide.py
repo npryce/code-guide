@@ -1,7 +1,7 @@
 
 
 from code_guide import *
-from code_guide import _root
+from code_guide import _root, _explanation
 import io
 import lxml.etree
 from lxml.etree import XPathElementEvaluator
@@ -10,6 +10,9 @@ from xml.sax.saxutils import XMLGenerator
 
 def root(children, title=None, intro=None):
     return _root(title=title, intro=intro, children=children)
+
+def explanation(text, children, index=None):
+    return _explanation(text=text, children=children, index=index)
 
 def test_vanilla_lines_to_tree():
     tree = lines_to_tagged_tree(["one", "two", "three"])
@@ -29,7 +32,7 @@ def test_tagged_lines_to_simple_tree():
     
     assert tree == root([
         line("leading line"), 
-        highlight("some explanatory text", [
+        explanation("some explanatory text", [
             line("tagged line 1"), 
             line("tagged line 2")]), 
         line("trailing line")])
@@ -48,11 +51,29 @@ def test_nested_tags():
     
     assert tree == root([
         line("l1"),
-        highlight("t1", [
+        explanation("t1", [
             line("t1 l1"),
-            highlight("t1a", [
+            explanation("t1a", [
                 line("  t1a l1")]),
             line("t1 l2")])])
+
+
+def test_explicit_ordering():
+    tree = lines_to_tagged_tree([
+            "l1",
+            "## [2] step 2",
+            "l2",
+            "    ## [1] step 1",
+            "    l3",
+            "    ##.",
+            "##."])
+    
+    assert tree == root([
+            line("l1"),
+            explanation("step 2", index=2, children=[
+                    line("l2"),
+                    explanation("step 1", index=1, children=[
+                            line("    l3")])])])
 
 
 def test_multiple_lines_of_description():
@@ -67,7 +88,7 @@ def test_multiple_lines_of_description():
 
     assert tree == root([
         line("leading line"), 
-        highlight("some explanatory text\nmore explanatory text", [
+        explanation("some explanatory text\nmore explanatory text", [
             line("tagged line 1"), 
             line("tagged line 2")]), 
         line("trailing line")])
@@ -83,7 +104,7 @@ def test_blank_lines_in_description():
     
     assert tree == root([
             line("line 1"),
-            highlight("explanation line 1\n\nexplanation line 2", [
+            explanation("explanation line 1\n\nexplanation line 2", [
                     line("line 2")])])
     
 
@@ -97,7 +118,7 @@ def test_title():
     
     assert tree == root(title="The Title", children=[
             line(""),
-            highlight("some explanatory text", [
+            explanation("some explanatory text", [
                     line("a line")])])
 
 
@@ -116,15 +137,15 @@ def test_title_and_intro():
 
 tree = root(title="Example Code", intro="Intro Text", children=[
         line("l1"),
-        highlight("A", [
+        explanation("A", [
                 line("l2"),
                 line(""),
                 line("l3"),
-                highlight("B", [
+                explanation("B", [
                         line("l4"),
                         line("l5")]),
                 line("l6")]),
-        highlight("C", [
+        explanation("C", [
                 line("l7")]),
         line("l8")])
 

@@ -3,34 +3,41 @@
 import sys
 import re
 from collections import namedtuple
-from itertools import groupby
+from itertools import groupby, islice
 import xml.sax
 from xml.sax.saxutils import XMLGenerator, XMLFilterBase
-from xml.sax.xmlreader import AttributesImpl
 from markdown import markdown
 
 _title_pattern = re.compile("^\\s*####\\s*(?P<text>.+?)\\s*####\\s*$")
 _intro_pattern = re.compile("^\\s*### (?P<text>.+?)\\s*$")
-_tag_start_pattern = re.compile("^\\s*##\\s*((?P<step>\[[:digit:]+\])\\s*)?(?P<text>.*?)\\s*$")
-_tag_end_pattern = re.compile("^\\s*##\\.\\s*$")
+_region_start_pattern = re.compile("^\\s*##\\s*(\\[(?P<index>[0-9]+)\\]\\s*)?(?P<text>.*?)\\s*$")
+_region_end_pattern = re.compile("^\\s*##\\.\\s*$")
 
 _root = namedtuple('root', ['children', 'title', 'intro'])
-highlight = namedtuple('highlight', ['description', 'children'])
+_explanation = namedtuple('explanation', ['text', 'index', 'children'])
 line = namedtuple('line', ['text'])
 _title = namedtuple('title', ['text'])
 _intro = namedtuple('intro', ['text'])
 
-_start = namedtuple('_start', ['description'])
+_start = namedtuple('_start', ['text', 'index'])
 _end = namedtuple('_end', [])
-
-def _join_text(tag_start_lines, pattern):
-    return "\n".join(_significant_text(l, pattern) for l in tag_start_lines)
 
 def _significant_text(line, pattern):
     return pattern.match(line).group("text")
 
+def _join_text(tag_start_lines, pattern):
+    return "\n".join(_significant_text(l, pattern) for l in tag_start_lines)
+
+def _map_or_none(f, v):
+    return None if v is None else f(v)
+
+def _start_index(line, pattern):
+    return _map_or_none(int, pattern.match(line).groupdict().get('index', None))
+
 def _start_group(lines):
-    yield _start(_join_text(lines, _tag_start_pattern))
+    lines = list(lines)
+    yield _start(index=_start_index(lines[0], _region_start_pattern),
+                 text=_join_text(lines, _region_start_pattern))
 
 def _end_group(lines):
     for l in lines:
@@ -39,26 +46,29 @@ def _end_group(lines):
 def _intro_group(lines):
     yield _intro(_join_text(lines, _intro_pattern))
 
-def _line_group(lines):
-    for l in lines:
-        yield line(l)
-
 def _title_group(lines):
     for l in lines:
         yield _title(_significant_text(l, _title_pattern))
 
+def _line_group(lines):
+    for l in lines:
+        yield line(l)
+
+_line_groups = [
+    (_title_pattern, _title_group),
+    (_intro_pattern, _intro_group),
+    (_region_end_pattern, _end_group),
+    (_region_start_pattern, _start_group)]
+
+
 # The order in which these patterns are checked is important to avoid ambiguity.
 def line_group_type(l):
-    if _title_pattern.match(l) is not None:
-        return _title_group
-    elif _intro_pattern.match(l) is not None:
-        return _intro_group
-    elif _tag_end_pattern.match(l) is not None:
-        return _end_group
-    elif _tag_start_pattern.match(l) is not None:
-        return _start_group
+    for pattern, group in _line_groups:
+        if pattern.match(l) is not None:
+            return group
     else:
         return _line_group
+
 
 def _delimited(line_iter):
     for group_type, lines in groupby(line_iter, line_group_type):
@@ -69,7 +79,7 @@ def _to_tree(delimited_lines):
     for e in delimited_lines:
         t = type(e)
         if t == _start:
-            yield highlight(e.description, list(filter(valid_subtree_node, _to_tree(delimited_lines))))
+            yield _explanation(text=e.text, index=e.index, children=list(filter(valid_subtree_node, _to_tree(delimited_lines))))
         elif t == _end:
             return
         else:
@@ -130,12 +140,18 @@ def to_html(root, out=None, resource_dir="", minified=True):
         t = type(e)
         if t == line:
             element("pre", {}, e.text if e.text != "" else " ")
-        elif t == highlight:
-            out.startElement("div", {
-                    "class": "bootstro", 
-                    "data-bootstro-content": e.description,
-                    "data-bootstro-placement": "right",
-                    "data-bootstro-width": "25%"})
+        elif t == _explanation:
+            attrs = {
+                "class": "bootstro", 
+                "data-bootstro-content": e.text,
+                "data-bootstro-placement": "right",
+                "data-bootstro-width": "25%"}
+            
+            if e.index is not None:
+                attrs["data-bootstro-step"] = str(e.index - 1)
+                
+            out.startElement("div", attrs)
+                    
             for c in e.children:
                 element_to_html(c)
             out.endElement("div")
