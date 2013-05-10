@@ -160,25 +160,23 @@ stylesheets = ["bootstrap/css/bootstrap.min.css",
                "pygments.css",
                "code-guide.css"]
 
-def code_to_html(tree, **kwargs):
-    b = io.BytesIO()
-    to_html(tree, XMLGenerator(b), **kwargs)
-    return XPathElementEvaluator(lxml.etree.fromstring(b.getvalue()))
-
-
-def _lines(tree):
-    for c in tree.children:
-        if type(c) == line:
-            yield " " if c.text == "" else c.text
-        else:
-            for l in _lines(c):
-                yield l
-
-
 def test_code_translated_to_html_div():
     generated = code_to_html(tree)
     
-    assert generated("string(//div[@class='code-guide-code'])") == "\n".join(_lines(tree)) + "\n"
+    for e in generated("//@data-bootstro-content"):
+        print e
+
+    assert as_text(generated, "//*[@class='code-guide-code']") == "l1\nl2\n \nl3\nl4\nl5\nl6\nl7\nl8\n"
+    
+    assert generated("string((//@data-bootstro-content)[1])") == "<p>A</p>"
+    assert generated("string((//*[@data-bootstro-content])[1])") == "l2\n \nl3\nl4\nl5\nl6\n"
+    
+    assert generated("string((//@data-bootstro-content)[2])") == "<p>B</p>"
+    assert generated("string((//*[@data-bootstro-content])[2])") == "l4\nl5\n"
+    
+    assert generated("string((//@data-bootstro-content)[3])") == "<p>C</p>"
+    assert generated("string((//*[@data-bootstro-content])[3])") == "l7\n"
+
 
 def test_script_and_stylesheet_links_in_head():
     generated = code_to_html(tree)
@@ -229,6 +227,15 @@ def test_explicit_ordering_as_html():
     assert generated("string(//*[@data-bootstro-step='0'])") == "l2\n"
     assert generated("string(//*[@data-bootstro-step='1'])") == "l1\n"
 
+
+
+def code_to_html(tree, **kwargs):
+    b = io.BytesIO()
+    to_html(tree, XMLGenerator(b), **kwargs)
+    return XPathElementEvaluator(lxml.etree.fromstring(b.getvalue()))
+
+def as_text(doc, path):
+    return doc("string(" + path + ")")
 
 def assert_html_equals(actual, expected_as_str):
     actual_norm = normalised(lxml.etree.tostring(actual, method="c14n", pretty_print=False))
