@@ -166,7 +166,7 @@ def test_code_translated_to_html_div():
     for e in generated("//@data-bootstro-content"):
         print e
 
-    assert as_text(generated, "//*[@class='code-guide-code']") == "l1\nl2\n \nl3\nl4\nl5\nl6\nl7\nl8\n"
+    assert generated("string(//*[@class='code-guide-code'])") == "l1\nl2\n \nl3\nl4\nl5\nl6\nl7\nl8\n"
     
     assert generated("string((//@data-bootstro-content)[1])") == "<p>A</p>"
     assert generated("string((//*[@data-bootstro-content])[1])") == "l2\n \nl3\nl4\nl5\nl6\n"
@@ -233,9 +233,6 @@ def code_to_html(tree, **kwargs):
     b = io.BytesIO()
     to_html(tree, XMLGenerator(b), **kwargs)
     return XPathElementEvaluator(lxml.etree.fromstring(b.getvalue()))
-
-def as_text(doc, path):
-    return doc("string(" + path + ")")
 
 def assert_html_equals(actual, expected_as_str):
     actual_norm = normalised(lxml.etree.tostring(actual, method="c14n", pretty_print=False))
