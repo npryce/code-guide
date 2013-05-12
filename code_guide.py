@@ -173,11 +173,11 @@ _stylesheets = ["bootstrap/css/bootstrap{min}.css",
 
 
 
-def to_html(root, out=None, language="python", resource_dir="", minified=True):
+def to_html(root, out=None, syntax_highlight="python", resource_dir="", minified=True):
     if out is None:
         out = XMLGenerator(sys.stdout)
     
-    code_lexer = pygments.lexers.get_lexer_by_name(language)
+    code_lexer = pygments.lexers.get_lexer_by_name(syntax_highlight)
     
     resource_prefix = resource_dir if resource_dir == "" or resource_dir.endswith("/") else resource_dir + "/"
     min_suffix = ".min" if minified else ""
@@ -240,5 +240,5 @@ def to_html(root, out=None, language="python", resource_dir="", minified=True):
 
 if __name__ == '__main__':
     code = lines_to_tagged_tree(code_lines(sys.argv[1]))
-    to_html(code, resource_dir="resources", language="python")
+    to_html(code, resource_dir="resources", syntax_highlight="python")
 
