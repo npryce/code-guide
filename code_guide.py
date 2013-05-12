@@ -12,9 +12,11 @@ import pygments
 import pygments.lexers
 from pygments.formatters import HtmlFormatter
 
-_intro_pattern = re.compile(r'^\s*#\|\|( (?P<text>.+?))?$')
-_region_start_pattern = re.compile(r'^\s*#\|(( \[(?P<index>[0-9]+)\]\s*)? (?P<text>.*?))?$')
-_region_end_pattern = re.compile(r'^\s*#\|\.\s*$')
+start_of_line_comment = re.escape("#")
+
+_intro_pattern = re.compile(r'^\s*' + start_of_line_comment + '\|\|( (?P<text>.+?))?$')
+_region_start_pattern = re.compile(r'^\s*' + start_of_line_comment + '\|(( \[(?P<index>[0-9]+)\]\s*)? (?P<text>.*?))?$')
+_region_end_pattern = re.compile(r'^\s*' + start_of_line_comment + '\|\.\s*$')
 
 _root = namedtuple('root', ['children', 'intro'])
 _explanation = namedtuple('explanation', ['text', 'index', 'children'])
