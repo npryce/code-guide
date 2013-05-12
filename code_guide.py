@@ -6,17 +6,17 @@ from collections import namedtuple
 from itertools import groupby, islice
 import xml.sax
 from xml.sax.saxutils import XMLGenerator, XMLFilterBase
+from xml.etree.ElementTree import fromstring as etree_from_string
 from markdown import markdown
 import pygments
 import pygments.lexers
 from pygments.formatters import HtmlFormatter
 
-_title_pattern = re.compile("^\\s*####\\s*(?P<text>.+?)\\s*####\\s*$")
-_intro_pattern = re.compile("^\\s*### (?P<text>.+?)\\s*$")
-_region_start_pattern = re.compile("^\\s*##\\s*(\\[(?P<index>[0-9]+)\\]\\s*)?(?P<text>.*?)\\s*$")
-_region_end_pattern = re.compile("^\\s*##\\.\\s*$")
+_intro_pattern = re.compile(r'^\s*#\|\|( (?P<text>.+?))?$')
+_region_start_pattern = re.compile(r'^\s*#\|(( \[(?P<index>[0-9]+)\]\s*)? (?P<text>.*?))?$')
+_region_end_pattern = re.compile(r'^\s*#\|\.\s*$')
 
-_root = namedtuple('root', ['children', 'title', 'intro'])
+_root = namedtuple('root', ['children', 'intro'])
 _explanation = namedtuple('explanation', ['text', 'index', 'children'])
 line = namedtuple('line', ['text'])
 _title = namedtuple('title', ['text'])
@@ -26,7 +26,7 @@ _start = namedtuple('_start', ['text', 'index'])
 _end = namedtuple('_end', [])
 
 def _significant_text(line, pattern):
-    return pattern.match(line).group("text")
+    return pattern.match(line).group("text") or ""
 
 def _join_text(tag_start_lines, pattern):
     return "\n".join(_significant_text(l, pattern) for l in tag_start_lines)
@@ -34,8 +34,12 @@ def _join_text(tag_start_lines, pattern):
 def _map_or_none(f, v):
     return None if v is None else f(v)
 
+
 def _start_index(line, pattern):
     return _map_or_none(int, pattern.match(line).groupdict().get('index', None))
+
+def _intro_group(lines):
+    yield _intro(_join_text(lines, _intro_pattern))
 
 def _start_group(lines):
     lines = list(lines)
@@ -46,25 +50,17 @@ def _end_group(lines):
     for l in lines:
         yield _end()
 
-def _intro_group(lines):
-    yield _intro(_join_text(lines, _intro_pattern))
-
-def _title_group(lines):
-    for l in lines:
-        yield _title(_significant_text(l, _title_pattern))
-
 def _line_group(lines):
     for l in lines:
         yield line(l)
 
+
+# The order in which these patterns are checked is important to avoid ambiguity.
 _line_groups = [
-    (_title_pattern, _title_group),
     (_intro_pattern, _intro_group),
     (_region_end_pattern, _end_group),
     (_region_start_pattern, _start_group)]
 
-
-# The order in which these patterns are checked is important to avoid ambiguity.
 def line_group_type(l):
     for pattern, group in _line_groups:
         if pattern.match(l) is not None:
@@ -82,33 +78,24 @@ def _to_tree(delimited_lines):
     for e in delimited_lines:
         t = type(e)
         if t == _start:
-            yield _explanation(text=e.text, index=e.index, children=list(filter(valid_subtree_node, _to_tree(delimited_lines))))
+            yield _explanation(text=e.text, index=e.index, children=list(_to_tree(delimited_lines)))
         elif t == _end:
             return
         else:
             yield e
 
-def valid_subtree_node(e):
-    t = type(e)
-    return t not in (_title, _intro)
 
 def lines_to_tagged_tree(lines):
     parse = list(_to_tree(_delimited(lines)))
-    children = filter(valid_subtree_node, parse)
-    titles = filter(lambda e: type(e) == _title, parse)
-    intros = filter(lambda e: type(e) == _intro, parse)
+    children = filter(lambda e: type(e) != _intro, parse)
+    intros = list(filter(lambda e: type(e) == _intro, parse))
     
-    return _root(title=to_text("title", titles), intro=to_text("intro",intros), children=children)
-
-
-def to_text(name, es):
-    n = len(es)
-    if n == 1:
-        return es[0].text
-    elif n == 0:
-        return None
+    if intros:
+        intro_text = intros[0].text
     else:
-        raise ValueError("too many "+what+": there must be zero or one.")
+        intro_text = None
+
+    return _root(intro=intro_text, children=children)
 
 
 def code_lines(f):
@@ -128,9 +115,19 @@ def stream_html(out, html_str):
     filter.setContentHandler(out)
     xml.sax.parseString(html_str, filter)
 
-def stream_markdown_as_html(out, markdown_str):
-    stream_html(out, markdown(markdown_str, safe_mode=True, output_format="xhtml5"))
+def stream_element(out, e):
+    out.startElement(e.tag, e.attrib)
+    if e.text is not None:
+        out.characters(e.text)
+    for c in e:
+        stream_element(out, c)
+    if e.tail is not None:
+        out.characters(e.tail)
+    out.endElement(e.tag)
 
+
+def markdown_to_xml(markdown_str):
+    return markdown(markdown_str, safe_mode="escape", output_format="xhtml5")
 
 
 def _code_tree_to_html(out, e, code_lexer):
@@ -140,7 +137,7 @@ def _code_tree_to_html(out, e, code_lexer):
     elif t == _explanation:
         attrs = {
             "class": "bootstro", 
-            "data-bootstro-content": markdown(e.text),
+            "data-bootstro-content": markdown_to_xml(e.text),
             "data-bootstro-html": "true",
             "data-bootstro-placement": "right",
             "data-bootstro-width": "25%"}
@@ -174,6 +171,8 @@ _stylesheets = ["bootstrap/css/bootstrap{min}.css",
                 "pygments.css",
                 "code-guide.css"]
 
+
+
 def to_html(root, out=None, language="python", resource_dir="", minified=True):
     if out is None:
         out = XMLGenerator(sys.stdout)
@@ -192,11 +191,19 @@ def to_html(root, out=None, language="python", resource_dir="", minified=True):
     def script(relpath):
         element(out, "script", {"type": "text/javascript", "src": resource(relpath)})
     
+    if root.intro:
+        intro_etree = etree_from_string('<div class="code-guide-intro">' + markdown_to_xml(root.intro) + "</div>")
+        h1 = intro_etree.find("h1")
+        title = None if h1 is None else "".join(h1.itertext())
+    else:
+        intro_etree = None
+        title = None
+    
     out.startElement("html", {})
     
     out.startElement("head", {})
-    if root.title is not None:
-        element(out, "title", {}, text=root.title)
+    if title is not None:
+        element(out, "title", {}, text=title)
     for s in _stylesheets:
         stylesheet(s)
     for s in _scripts:
@@ -205,13 +212,8 @@ def to_html(root, out=None, language="python", resource_dir="", minified=True):
     
     out.startElement("body", {})
     
-    if root.title is not None:
-        element(out, "h1", {}, text=root.title)
-    
-    if root.intro is not None:
-        out.startElement("div", {"class": "code-guide-intro"})
-        stream_markdown_as_html(out, root.intro)
-        out.endElement("div")
+    if intro_etree is not None:
+        stream_element(out, intro_etree)
     
     out.startElement("p", {})
     element(out, "button", 

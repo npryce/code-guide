@@ -8,8 +8,8 @@ from lxml.etree import XPathElementEvaluator
 from lxml.sax import ElementTreeContentHandler
 from xml.sax.saxutils import XMLGenerator
 
-def root(children, title=None, intro=None):
-    return _root(title=title, intro=intro, children=children)
+def root(children, intro=None):
+    return _root(intro=intro, children=children)
 
 def explanation(text, children, index=None):
     return _explanation(text=text, children=children, index=index)
@@ -24,10 +24,10 @@ def test_vanilla_lines_to_tree():
 def test_tagged_lines_to_simple_tree():
     tree = lines_to_tagged_tree([
         "leading line",
-        "## some explanatory text",
+        "#| some explanatory text",
         "tagged line 1",
         "tagged line 2",
-        "##.",
+        "#|.",
         "trailing line"])
     
     assert tree == root([
@@ -41,13 +41,13 @@ def test_tagged_lines_to_simple_tree():
 def test_nested_tags():
     tree = lines_to_tagged_tree([
             "l1",
-            "## t1",
+            "#| t1",
             "t1 l1",
-            "  ## t1a",
+            "  #| t1a",
             "  t1a l1",
-            "  ##.",
+            "  #|.",
             "t1 l2",
-            "##."])
+            "#|."])
     
     assert tree == root([
         line("l1"),
@@ -61,12 +61,12 @@ def test_nested_tags():
 def test_explicit_ordering():
     tree = lines_to_tagged_tree([
             "l1",
-            "## [2] step 2",
+            "#| [2] step 2",
             "l2",
-            "    ## [1] step 1",
+            "    #| [1] step 1",
             "    l3",
-            "    ##.",
-            "##."])
+            "    #|.",
+            "#|."])
     
     assert tree == root([
             line("l1"),
@@ -79,11 +79,11 @@ def test_explicit_ordering():
 def test_multiple_lines_of_description():
     tree = lines_to_tagged_tree([
         "leading line",
-        "## some explanatory text",
-        "## more explanatory text",
+        "#| some explanatory text",
+        "#| more explanatory text",
         "tagged line 1",
         "tagged line 2",
-        "##.",
+        "#|.",
         "trailing line"])
 
     assert tree == root([
@@ -96,11 +96,11 @@ def test_multiple_lines_of_description():
 def test_blank_lines_in_description():
     tree = lines_to_tagged_tree([
             "line 1",
-            "## explanation line 1",
-            "##",
-            "## explanation line 2",
+            "#| explanation line 1",
+            "#|",
+            "#| explanation line 2",
             "line 2",
-            "##."])
+            "#|."])
     
     assert tree == root([
             line("line 1"),
@@ -108,34 +108,36 @@ def test_blank_lines_in_description():
                     line("line 2")])])
     
 
-def test_title():
+def test_intro_with_title():
     tree = lines_to_tagged_tree([
-            "#### The Title ####",
+            "#|| The Title",
+            "#|| =========",
+            "#|| first line of intro",
+            "#|| another line of intro",
             "",
-            "## some explanatory text",
+            "#| some explanatory text",
             "a line",
-            "##."])
+            "#|."])
     
-    assert tree == root(title="The Title", children=[
+    assert tree == root(intro="The Title\n=========\nfirst line of intro\nanother line of intro", children=[
             line(""),
             explanation("some explanatory text", [
                     line("a line")])])
 
 
-def test_title_and_intro():
+def test_intro_without_title():
     tree = lines_to_tagged_tree([
-            "#### Title ####",
-            "### first line of intro",
-            "### another line of intro",
+            "#|| first line of intro",
+            "#|| another line of intro",
             "",
             "a line"])
     
-    assert tree == root(title="Title", intro="first line of intro\nanother line of intro", children=[
+    assert tree == root(intro="first line of intro\nanother line of intro", children=[
             line(""), 
             line("a line")])
 
 
-tree = root(title="Example Code", intro="Intro Text", children=[
+tree = root(intro="Example Code\n============\nIntro Text", children=[
         line("l1"),
         explanation("A", [
                 line("l2"),
@@ -207,7 +209,7 @@ def test_explain_button():
 def test_title():
     generated = code_to_html(tree)
     
-    assert generated("string(/html/body//h1)") == "Example Code"
+    assert generated("string(/html/body//h1)").rstrip() == "Example Code"
     assert generated("string(/html/head/title)") == "Example Code"
 
 
