@@ -11,6 +11,8 @@ from markdown import markdown
 import pygments
 import pygments.lexers
 from pygments.formatters import HtmlFormatter
+import argparse
+
 
 start_of_line_comment = re.escape("#")
 
@@ -100,10 +102,6 @@ def lines_to_tagged_tree(lines):
 
     return _root(intro=intro_text, children=children)
 
-
-def code_lines(f):
-    with open(f) as input:
-        return [l.rstrip('\n') for l in input]
 
 
 class ElementOnlyFilter(XMLFilterBase):
@@ -241,7 +239,29 @@ def to_html(root, out=None, syntax_highlight="python", resource_dir="", minified
     out.endElement("html")
 
 
+
+def lines(input):
+    return [l.rstrip('\n') for l in input]
+
+def cli(argv):
+    parser = argparse.ArgumentParser(description="Generate interactive HTML documentation from example code")
+    parser.add_argument('-r', '--resource-dir', dest='resource_dir', metavar='DIR', default='resources',
+                        help='prepend directory DIR to the relative URLs of scripts and stylesheets')
+    parser.add_argument('-l', '--highlight', dest='syntax_highlight', default='python', metavar='LANGUAGE',
+                        help='apply syntax highlighting for language LANGUAGE')
+    parser.add_argument('-o', '--output', dest='output', type=argparse.FileType('w'), default='-',
+                        help='output file (default: write to stdout)')
+    parser.add_argument('source', type=argparse.FileType('r'), nargs='?', default='-',
+                        help='source file of example code (default: read from stdin)')
+    
+    args = parser.parse_args(argv[1:])
+    
+    to_html(lines_to_tagged_tree(lines(args.source)), 
+            resource_dir=args.resource_dir, 
+            syntax_highlight=args.syntax_highlight,
+            out=XMLGenerator(args.output))
+    
+
 if __name__ == '__main__':
-    code = lines_to_tagged_tree(code_lines(sys.argv[1]))
-    to_html(code, resource_dir="resources", syntax_highlight="python")
+    cli(sys.argv)
 
