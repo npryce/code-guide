@@ -14,18 +14,14 @@ from pygments.formatters import HtmlFormatter
 
 start_of_line_comment = re.escape("#")
 
-_intro_pattern = re.compile(r'^\s*' + start_of_line_comment + '\|\|( (?P<text>.+?))?$')
-_region_start_pattern = re.compile(r'^\s*' + start_of_line_comment + '\|(( \[(?P<index>[0-9]+)\]\s*)? (?P<text>.*?))?$')
-_region_end_pattern = re.compile(r'^\s*' + start_of_line_comment + '\|\.\s*$')
-
 _root = namedtuple('root', ['children', 'intro'])
 _explanation = namedtuple('explanation', ['text', 'index', 'children'])
 line = namedtuple('line', ['text'])
-_title = namedtuple('title', ['text'])
 _intro = namedtuple('intro', ['text'])
 
 _start = namedtuple('_start', ['text', 'index'])
 _end = namedtuple('_end', [])
+
 
 def _significant_text(line, pattern):
     return pattern.match(line).group("text") or ""
@@ -35,6 +31,11 @@ def _join_text(tag_start_lines, pattern):
 
 def _map_or_none(f, v):
     return None if v is None else f(v)
+
+
+_intro_pattern = re.compile(r'^\s*' + start_of_line_comment + '\|\|( (?P<text>.+?))?$')
+_region_start_pattern = re.compile(r'^\s*' + start_of_line_comment + '\|(( \[(?P<index>[0-9]+)\]\s*)? (?P<text>.*?))?$')
+_region_end_pattern = re.compile(r'^\s*' + start_of_line_comment + '\|\.\s*$')
 
 
 def _start_index(line, pattern):
