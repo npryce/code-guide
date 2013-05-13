@@ -38,7 +38,10 @@ Adjacent #| comments are treated as a single block of Markdown syntax.  Regions 
     #|.
 
 
-The order in which explanations are presented to the reader can be controlled by adding indices in square brackets at the start of each ## comment block.  Indices start at 1.  All comment blocks must have an index, or none.  If no comment blocks have an index, explanations are shown in the order they appear in the source code.
+The order in which explanations are presented to the reader can be controlled by adding 
+indices in square brackets at the start of each #| comment block.  Indices start at 1.  
+Either all or none of the explanations must have an index.  If no explanations have an index, 
+they are shown in the order they appear in the source code.
 
 
     #| [2] This statement will be explained second.
