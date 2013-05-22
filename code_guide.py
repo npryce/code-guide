@@ -3,6 +3,7 @@
 import sys
 import re
 from collections import namedtuple
+from operator import itemgetter as item
 from itertools import groupby, islice
 import xml.sax
 from xml.sax.saxutils import XMLGenerator, XMLFilterBase
@@ -14,7 +15,7 @@ from pygments.formatters import HtmlFormatter
 import argparse
 
 
-start_of_line_comment = re.escape("#")
+_parsed_line = namedtuple('_parsed_line', ['group_fn', 'line', 'parts'])
 
 _root = namedtuple('root', ['children', 'intro'])
 _explanation = namedtuple('explanation', ['text', 'index', 'children'])
@@ -25,31 +26,27 @@ _start = namedtuple('_start', ['text', 'index'])
 _end = namedtuple('_end', [])
 
 
-def _significant_text(line, pattern):
-    return pattern.match(line).group("text") or ""
 
-def _join_text(tag_start_lines, pattern):
-    return "\n".join(_significant_text(l, pattern) for l in tag_start_lines)
-
-def _map_or_none(f, v):
-    return None if v is None else f(v)
-
-
+start_of_line_comment = re.escape("#")
 _intro_pattern = re.compile(r'^\s*' + start_of_line_comment + '\|\|( (?P<text>.+?))?$')
 _region_start_pattern = re.compile(r'^\s*' + start_of_line_comment + '\|(( \[(?P<index>[0-9]+)\]\s*)? (?P<text>.*?))?$')
 _region_end_pattern = re.compile(r'^\s*' + start_of_line_comment + '\|\.\s*$')
 
 
-def _start_index(line, pattern):
-    return _map_or_none(int, pattern.match(line).groupdict().get('index', None))
+def _join_text(lines_with_text):
+    return "\n".join(l.parts.get('text') or "" for l in lines_with_text)
+
+def _start_index(line):
+    index_str = line.parts.get('index', None)
+    return int(index_str) if index_str is not None else None
+
 
 def _intro_group(lines):
-    yield _intro(_join_text(lines, _intro_pattern))
+    yield _intro(_join_text(lines))
 
 def _start_group(lines):
     lines = list(lines)
-    yield _start(index=_start_index(lines[0], _region_start_pattern),
-                 text=_join_text(lines, _region_start_pattern))
+    yield _start(index=_start_index(lines[0]), text=_join_text(lines))
 
 def _end_group(lines):
     for l in lines:
@@ -57,7 +54,7 @@ def _end_group(lines):
 
 def _line_group(lines):
     for l in lines:
-        yield line(l)
+        yield line(l.line)
 
 
 # The order in which these patterns are checked is important to avoid ambiguity.
@@ -66,19 +63,20 @@ _line_groups = [
     (_region_end_pattern, _end_group),
     (_region_start_pattern, _start_group)]
 
-def line_group_type(l):
-    for pattern, group in _line_groups:
-        if pattern.match(l) is not None:
-            return group
+def _parse_line(l):
+    for pattern, group_fn in _line_groups:
+        m = pattern.match(l)
+        if m is not None:
+            return _parsed_line(group_fn, l, m.groupdict())
     else:
-        return _line_group
+        return _parsed_line(_line_group, l, {})
 
 
-def _delimited(line_iter):
-    for group_type, lines in groupby(line_iter, line_group_type):
-        for e in group_type(lines):
+def _delimited(lines):
+    for group_fn, group_lines in groupby((_parse_line(l) for l in lines), item(0)):
+        for e in group_fn(group_lines):
             yield e
-            
+
 def _to_tree(delimited_lines):
     for e in delimited_lines:
         t = type(e)
