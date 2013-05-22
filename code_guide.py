@@ -27,12 +27,6 @@ _end = namedtuple('_end', [])
 
 
 
-start_of_line_comment = re.escape("#")
-_intro_pattern = re.compile(r'^\s*' + start_of_line_comment + '\|\|( (?P<text>.+?))?$')
-_region_start_pattern = re.compile(r'^\s*' + start_of_line_comment + '\|(( \[(?P<index>[0-9]+)\]\s*)? (?P<text>.*?))?$')
-_region_end_pattern = re.compile(r'^\s*' + start_of_line_comment + '\|\.\s*$')
-
-
 def _join_text(lines_with_text):
     return "\n".join(l.parts.get('text') or "" for l in lines_with_text)
 
@@ -57,23 +51,31 @@ def _line_group(lines):
         yield line(l.line)
 
 
-# The order in which these patterns are checked is important to avoid ambiguity.
-_line_groups = [
-    (_intro_pattern, _intro_group),
-    (_region_end_pattern, _end_group),
-    (_region_start_pattern, _start_group)]
 
-def _parse_line(l):
-    for pattern, group_fn in _line_groups:
-        m = pattern.match(l)
-        if m is not None:
-            return _parsed_line(group_fn, l, m.groupdict())
-    else:
-        return _parsed_line(_line_group, l, {})
+def _parse_lines(lines, comment_start):
+    comment_start_re = re.escape(comment_start)
+    intro_pattern = re.compile(r'^\s*' + comment_start_re + '\|\|( (?P<text>.+?))?$')
+    region_start_pattern = re.compile(r'^\s*' + comment_start_re + '\|(( \[(?P<index>[0-9]+)\]\s*)? (?P<text>.*?))?$')
+    region_end_pattern = re.compile(r'^\s*' + comment_start_re + '\|\.\s*$')
+    
+    # The order in which these patterns are checked is important to avoid ambiguity.
+    _line_groups = [
+        (intro_pattern, _intro_group),
+        (region_end_pattern, _end_group),
+        (region_start_pattern, _start_group)]
+    
+    def _parse_line(l):
+        for pattern, group_fn in _line_groups:
+            m = pattern.match(l)
+            if m is not None:
+                return _parsed_line(group_fn, l, m.groupdict())
+        else:
+            return _parsed_line(_line_group, l, {})
+    
+    return (_parse_line(l) for l in lines)
 
-
-def _delimited(lines):
-    for group_fn, group_lines in groupby((_parse_line(l) for l in lines), item(0)):
+def _delimited(parsed_lines):
+    for group_fn, group_lines in groupby(parsed_lines, item(0)):
         for e in group_fn(group_lines):
             yield e
 
@@ -88,16 +90,16 @@ def _to_tree(delimited_lines):
             yield e
 
 
-def lines_to_tagged_tree(lines):
-    parse = list(_to_tree(_delimited(lines)))
+def lines_to_tagged_tree(lines, comment_start="#"):
+    parse = list(_to_tree(_delimited(_parse_lines(lines, comment_start))))
     children = filter(lambda e: type(e) != _intro, parse)
     intros = list(filter(lambda e: type(e) == _intro, parse))
     
-    if intros:
+    if len(intros) > 0:
         intro_text = intros[0].text
     else:
         intro_text = None
-
+    
     return _root(intro=intro_text, children=children)
 
 
@@ -247,6 +249,8 @@ def cli(argv):
                         help='prepend directory DIR to the relative URLs of scripts and stylesheets')
     parser.add_argument('-l', '--highlight', dest='syntax_highlight', default='python', metavar='LANGUAGE',
                         help='apply syntax highlighting for language LANGUAGE')
+    parser.add_argument('-c', '--comment-start', dest='comment_start', default='#',
+                        help='the syntax used to start single-line comments')
     parser.add_argument('-o', '--output', dest='output', type=argparse.FileType('w'), default='-',
                         help='output file (default: write to stdout)')
     parser.add_argument('source', type=argparse.FileType('r'), nargs='?', default='-',
@@ -254,7 +258,7 @@ def cli(argv):
     
     args = parser.parse_args(argv[1:])
     
-    to_html(lines_to_tagged_tree(lines(args.source)), 
+    to_html(lines_to_tagged_tree(lines(args.source), args.comment_start),
             resource_dir=args.resource_dir, 
             syntax_highlight=args.syntax_highlight,
             out=XMLGenerator(args.output))

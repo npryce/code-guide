@@ -36,6 +36,22 @@ def test_tagged_lines_to_simple_tree():
             line("tagged line 1"), 
             line("tagged line 2")]), 
         line("trailing line")])
+
+def test_can_specify_comment_start_syntax():
+    tree = lines_to_tagged_tree(comment_start=">>", lines=[
+        "leading line",
+        ">>| some explanatory text",
+        "tagged line 1",
+        "tagged line 2",
+        ">>|.",
+        "trailing line"])
+    
+    assert tree == root([
+        line("leading line"), 
+        explanation("some explanatory text", [
+            line("tagged line 1"), 
+            line("tagged line 2")]), 
+        line("trailing line")])
     
 
 def test_nested_tags():
