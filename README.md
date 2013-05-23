@@ -3,8 +3,6 @@ Code Guide
 
 A tool that generates an interactive HTML explanation of how code works from unobtrusive markup of comments in the code.
 
-Currently only supports Python.  Support for other languages is planned.
-
 
 Installation
 ============
@@ -19,7 +17,25 @@ Installation via PyPI coming soon...
 Very Brief Documentation
 ========================
 
-Mark up regions of code to be explained by adding #| comments at the start and a #|. comment at the end.  
+Mark up regions of code to be explained by adding line comments that immediately start with a "|" character at the start of the region, 
+and a line comment that starts with "|." at the end of the region.
+
+E.g., in Python:
+
+    #| This is the start
+    some_code()
+    #|.
+    
+    
+In Java:
+
+    //| This is the start
+    SomeCodeFactoryFactoryImpl.getSomeCodeFactory().getSomeCode().callIt();
+    //|.
+    
+For the rest of this document we'll assume you're using a language where line comments start with "#", 
+but everything applies to other line-comment syntax.
+
 Adjacent #| comments are treated as a single block of Markdown syntax.  Regions can be nested but not overlap.
 
     #| This if statement compares two numbers.
