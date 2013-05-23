@@ -10,7 +10,9 @@ Installation
 
 Currently completely manual.  You can install dependencies with `pip install -r requirements.txt`.
 
-Run with: `python src/code_guide.py <input-file> > <output-file>`.   Then copy shared resources (JavaScript and CSS) from resources/ to wherever you are saving generated documents.
+Run with: `python -m code_guide [options] <input-file>`.   Then copy shared resources (JavaScript and CSS) from resources/ to wherever you are saving generated documents.
+
+Run `python -m code_guide --help` for help on the command-line options.
 
 Installation via PyPI coming soon... 
 
