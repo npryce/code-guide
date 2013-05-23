@@ -1,7 +1,8 @@
 Code Guide
 ==========
 
-A tool that generates an interactive HTML explanation of how code works from unobtrusive markup of comments in the code.
+A tool that generates an interactive HTML explanation of how code works from unobtrusive markup of comments in the code. 
+The explanation is readable in the source, as well as in the generated documentation.
 
 
 Installation
@@ -33,8 +34,8 @@ In Java:
     SomeCodeFactoryFactoryImpl.getSomeCodeFactory().getSomeCode().callIt();
     //|.
     
-For the rest of this document we'll assume you're using a language where line comments start with "#", 
-but everything applies to other line-comment syntax.
+The rest of this document describes using the tool with a language that has line comments starting with "#", 
+but the documentation applies to just as well languages with a different line-comment syntax.
 
 Adjacent #| comments are treated as a single block of Markdown syntax.  Regions can be nested but not overlap.
 
