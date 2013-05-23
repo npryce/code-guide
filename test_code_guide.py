@@ -8,8 +8,8 @@ from lxml.etree import XPathElementEvaluator
 from lxml.sax import ElementTreeContentHandler
 from xml.sax.saxutils import XMLGenerator
 
-def root(children, intro=None):
-    return _root(intro=intro, children=children)
+def root(children, intro=None, outro=None):
+    return _root(intro=intro, outro=outro, children=children)
 
 def explanation(text, children, index=None):
     return _explanation(text=text, children=children, index=index)
@@ -153,7 +153,29 @@ def test_intro_without_title():
             line("a line")])
 
 
-tree = root(intro="Example Code\n============\nIntro Text", children=[
+def test_outro_with_title():
+    tree = lines_to_tagged_tree([
+            "#|| intro",
+            "",
+            "#| some explanatory text",
+            "a line",
+            "#|.",
+            "another line",
+            "#|| outro"])
+    
+    assert tree == root(
+        intro="intro", 
+        children=[
+            line(""),
+            explanation("some explanatory text", [
+                    line("a line")]),
+            line("another line")], 
+        outro="outro")
+
+
+tree = root(
+    intro="Example Code\n============\nIntro Text", 
+    children=[
         line("l1"),
         explanation("A", [
                 line("l2"),
@@ -165,7 +187,8 @@ tree = root(intro="Example Code\n============\nIntro Text", children=[
                 line("l6")]),
         explanation("C", [
                 line("l7")]),
-        line("l8")])
+        line("l8")],
+    outro="That's all, folks!")
 
 
 scripts = ["bootstrap/js/bootstrap.min.js",
@@ -234,6 +257,13 @@ def test_intro():
     
     assert generated("/html/body//div[@class='code-guide-intro']/p[text() = 'Intro Text']")
 
+def test_outro():
+    generated = code_to_html(tree)
+    
+    assert generated("string(/html/body//div[@class='code-guide-outro'])") == "That's all, folks!"
+    
+
+
 
 def test_explicit_ordering_as_html():
     tree = root([
@@ -244,7 +274,6 @@ def test_explicit_ordering_as_html():
     
     assert generated("string(//*[@data-bootstro-step='0'])") == "l2\n"
     assert generated("string(//*[@data-bootstro-step='1'])") == "l1\n"
-
 
 
 def code_to_html(tree, **kwargs):

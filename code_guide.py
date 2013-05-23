@@ -17,7 +17,7 @@ import argparse
 
 _parsed_line = namedtuple('_parsed_line', ['group_fn', 'line', 'parts'])
 
-_root = namedtuple('root', ['children', 'intro'])
+_root = namedtuple('root', ['children', 'intro', 'outro'])
 _explanation = namedtuple('explanation', ['text', 'index', 'children'])
 line = namedtuple('line', ['text'])
 _intro = namedtuple('intro', ['text'])
@@ -100,7 +100,12 @@ def lines_to_tagged_tree(lines, comment_start="#"):
     else:
         intro_text = None
     
-    return _root(intro=intro_text, children=children)
+    if len(intros) > 1:
+        outro_text = intros[-1].text
+    else:
+        outro_text = None
+    
+    return _root(intro=intro_text, outro=outro_text, children=children)
 
 
 
@@ -193,7 +198,7 @@ def to_html(root, out=None, syntax_highlight="python", resource_dir="", minified
         element(out, "script", {"type": "text/javascript", "src": resource(relpath)})
     
     if root.intro:
-        intro_etree = etree_from_string('<div class="code-guide-intro">' + markdown_to_xml(root.intro) + "</div>")
+        intro_etree = etree_from_string('<div class="code-guide-intro">' + markdown_to_xml(root.intro) + '</div>')
         h1 = intro_etree.find("h1")
         title = None if h1 is None else "".join(h1.itertext())
     else:
@@ -228,6 +233,9 @@ def to_html(root, out=None, syntax_highlight="python", resource_dir="", minified
     for e in root.children:
         _code_tree_to_html(out, e, code_lexer)
     out.endElement("div")
+    
+    if root.outro:
+        stream_element(out, etree_from_string('<div class="code-guide-outro">' + markdown_to_xml(root.outro) + '</div>'))
     
     stream_html(out, """
        <div class="colophon">

@@ -11,6 +11,7 @@ body {
 	font-size: 16px;
 	line-height: 24px;
 	margin-right: 25%;
+	margin-bottom: 1em;
 }
 
 .code-guide-code pre {
@@ -24,9 +25,13 @@ body {
 
 .colophon {
 	font-size: smaller;
-	margin-top: 2em;
+	margin-top: 1em;
 }
 
 .bootstro-highlight {
 	border-radius: 2px;
+}
+
+.code-guide-outro {
+	margin-bottom: 1em;
 }
