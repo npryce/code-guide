@@ -8,7 +8,7 @@ from itertools import groupby, islice
 import xml.sax
 from xml.sax.saxutils import XMLGenerator, XMLFilterBase
 from xml.etree.ElementTree import fromstring as etree_from_string
-from markdown import markdown
+import markdown
 import pygments
 import pygments.lexers
 from pygments.formatters import HtmlFormatter
@@ -132,18 +132,15 @@ def stream_element(out, e):
     out.endElement(e.tag)
 
 
-def markdown_to_xml(markdown_str):
-    return markdown(markdown_str, safe_mode="escape", output_format="xhtml5")
 
-
-def _code_tree_to_html(out, e, code_lexer):
+def _code_tree_to_html(out, e, code_lexer, md):
     t = type(e)
     if t == line:
         stream_html(out, pygments.highlight(" " if e.text == "" else e.text, code_lexer, HtmlFormatter(cssclass="", classprefix="code-guide-syntax-")))
     elif t == _explanation:
         attrs = {
             "class": "bootstro", 
-            "data-bootstro-content": markdown_to_xml(e.text),
+            "data-bootstro-content": md.convert(e.text),
             "data-bootstro-html": "true",
             "data-bootstro-placement": "right",
             "data-bootstro-width": "25%"}
@@ -154,7 +151,7 @@ def _code_tree_to_html(out, e, code_lexer):
         out.startElement("div", attrs)
                     
         for c in e.children:
-            _code_tree_to_html(out, c, code_lexer)
+            _code_tree_to_html(out, c, code_lexer, md)
         out.endElement("div")
     else:
         raise ValueError("unexpected node: " + repr(e))
@@ -178,12 +175,35 @@ _stylesheets = ["bootstrap/css/bootstrap{min}.css",
                 "code-guide.css"]
 
 
+def identity(x):
+    return x
 
-def to_html(root, out=None, syntax_highlight="python", resource_dir="", minified=True):
+def re_subn(regex, subn):
+    p = re.compile(regex)
+    return lambda s: p.subn(subn, s)[0]
+
+
+
+class LinkTransformer(object):
+    def __init__(self, link_transform_fn):
+        self.link_transform_fn = link_transform_fn
+        
+    def run(self, tree):
+        for link in tree.findall(".//a"):
+            href = link.get('href')
+            if href is not None:
+                link.set('href', self.link_transform_fn(href))
+        return tree
+
+
+def to_html(root, out=None, syntax_highlight="python", resource_dir="", minified=True, link_transform_fn=identity):
     if out is None:
         out = XMLGenerator(sys.stdout)
     
     code_lexer = pygments.lexers.get_lexer_by_name(syntax_highlight)
+    
+    md = markdown.Markdown(safe_mode="escape", output_format="xhtml5")
+    md.treeprocessors["code-links"] = LinkTransformer(link_transform_fn)
     
     resource_prefix = resource_dir if resource_dir == "" or resource_dir.endswith("/") else resource_dir + "/"
     min_suffix = ".min" if minified else ""
@@ -198,7 +218,7 @@ def to_html(root, out=None, syntax_highlight="python", resource_dir="", minified
         element(out, "script", {"type": "text/javascript", "src": resource(relpath)})
     
     if root.intro:
-        intro_etree = etree_from_string('<div class="code-guide-intro">' + markdown_to_xml(root.intro) + '</div>')
+        intro_etree = etree_from_string('<div class="code-guide-intro">' + md.convert(root.intro) + '</div>')
         h1 = intro_etree.find("h1")
         title = None if h1 is None else "".join(h1.itertext())
     else:
@@ -231,11 +251,11 @@ def to_html(root, out=None, syntax_highlight="python", resource_dir="", minified
     
     out.startElement("div", {"class": "code-guide-code"})
     for e in root.children:
-        _code_tree_to_html(out, e, code_lexer)
+        _code_tree_to_html(out, e, code_lexer, md)
     out.endElement("div")
     
     if root.outro:
-        stream_element(out, etree_from_string('<div class="code-guide-outro">' + markdown_to_xml(root.outro) + '</div>'))
+        stream_element(out, etree_from_string('<div class="code-guide-outro">' + md.convert(root.outro) + '</div>'))
     
     stream_html(out, """
        <div class="colophon">

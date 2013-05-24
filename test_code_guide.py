@@ -276,6 +276,18 @@ def test_explicit_ordering_as_html():
     assert generated("string(//*[@data-bootstro-step='1'])") == "l1\n"
 
 
+def test_code_link_translation():
+    tree = root(
+        intro = "A link to [more example code](example2.py)",
+        children = [],
+        outro = "A link to [yet more example code](example3.py)")
+    
+    generated = code_to_html(tree, link_transform_fn=re_subn(r"(.*)\.py", r"\1.html"))
+    
+    assert generated("//a[@href='example2.html'][text() = 'more example code']")
+    assert generated("//a[@href='example3.html'][text() = 'yet more example code']")
+
+
 def code_to_html(tree, **kwargs):
     b = io.BytesIO()
     to_html(tree, XMLGenerator(b), **kwargs)
