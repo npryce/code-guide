@@ -33,7 +33,7 @@ E.g., in Python:
 In Java:
 
     //| This is the start
-    SomeCodeFactoryFactoryImpl.getSomeCodeFactory().getSomeCode().callIt();
+    SomeCodeFactoryFactoryImpl.getSomeCodeFactory().getSomeCode().run();
     //|.
     
 The rest of this document describes using the tool with a language that has line comments starting with "#", but the documentation applies to just as well languages with a different line-comment syntax.
