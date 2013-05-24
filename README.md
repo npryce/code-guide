@@ -36,8 +36,7 @@ In Java:
     SomeCodeFactoryFactoryImpl.getSomeCodeFactory().getSomeCode().callIt();
     //|.
     
-The rest of this document describes using the tool with a language that has line comments starting with "#", 
-but the documentation applies to just as well languages with a different line-comment syntax.
+The rest of this document describes using the tool with a language that has line comments starting with "#", but the documentation applies to just as well languages with a different line-comment syntax.
 
 Adjacent #| comments are treated as a single block of Markdown syntax.  Regions can be nested but not overlap.
 
@@ -57,10 +56,8 @@ Adjacent #| comments are treated as a single block of Markdown syntax.  Regions 
     #|.
 
 
-The order in which explanations are presented to the reader can be controlled by adding 
-indices in square brackets at the start of each #| comment block.  Indices start at 1.  
-Either all or none of the explanations must have an index.  If no explanations have an index, 
-they are shown in the order they appear in the source code.
+The order in which explanations are presented to the reader can be controlled by adding indices in square brackets at the start of each #| comment block.  Indices start at 1.  
+Either all or none of the explanations must have an index.  If no explanations have an index, they are shown in the order they appear in the source code.
 
 
     #| [2] This statement will be explained second.
@@ -71,13 +68,10 @@ they are shown in the order they appear in the source code.
     sys.exit(1)
     #|.
 
-The generated document can be given an introduction in markdown format.  
-Introduction text is a block of adjacent lines that start with #||.  
-If the introduction has a top-level heading, the text of the heading is 
+The generated document can be given an introduction and/or end-note in markdown format with a block of adjacent lines that start with #||.  If the introduction has a top-level heading, the text of the heading is 
 used as the title of the generated HTML.
 
-Only the first block of introduction text will be used.  Any later ones 
-will be silently ignored (and may cause an error in future versions of the tool).
+Only the first and last block of text will be used.  Any others will be silently ignored (and may cause an error in future versions of the tool).
 
 
     #|| Hello World
