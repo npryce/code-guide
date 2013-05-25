@@ -257,13 +257,12 @@ def test_intro():
     
     assert generated("/html/body//div[@class='code-guide-intro']/p[text() = 'Intro Text']")
 
+
 def test_outro():
     generated = code_to_html(tree)
     
     assert generated("string(/html/body//div[@class='code-guide-outro'])") == "That's all, folks!"
     
-
-
 
 def test_explicit_ordering_as_html():
     tree = root([
@@ -278,14 +277,16 @@ def test_explicit_ordering_as_html():
 
 def test_code_link_translation():
     tree = root(
-        intro = "A link to [more example code](example2.py)",
+        intro = "There is [example code](example2.py) here...",
         children = [],
-        outro = "A link to [yet more example code](example3.py)")
+        outro = "And [more example code](example3.py) there...")
     
     generated = code_to_html(tree, link_transform_fn=re_subn(r"(.*)\.py", r"\1.html"))
     
-    assert generated("//a[@href='example2.html'][text() = 'more example code']")
-    assert generated("//a[@href='example3.html'][text() = 'yet more example code']")
+    print lxml.etree.tostring(generated(".")[0], pretty_print=True)
+    
+    assert generated("string(//a[@href='example2.html'])") == "example code"
+    assert generated("string(//a[@href='example3.html'])") == "more example code"
 
 
 def code_to_html(tree, **kwargs):

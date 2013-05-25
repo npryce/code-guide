@@ -127,9 +127,9 @@ def stream_element(out, e):
         out.characters(e.text)
     for c in e:
         stream_element(out, c)
+    out.endElement(e.tag)
     if e.tail is not None:
         out.characters(e.tail)
-    out.endElement(e.tag)
 
 
 
@@ -193,6 +193,7 @@ class LinkTransformer(object):
             href = link.get('href')
             if href is not None:
                 link.set('href', self.link_transform_fn(href))
+        
         return tree
 
 
@@ -203,7 +204,7 @@ def to_html(root, out=None, syntax_highlight="python", resource_dir="", minified
     code_lexer = pygments.lexers.get_lexer_by_name(syntax_highlight)
     
     md = markdown.Markdown(safe_mode="escape", output_format="xhtml5")
-    md.treeprocessors["code-links"] = LinkTransformer(link_transform_fn)
+    md.treeprocessors["codelinks"] = LinkTransformer(link_transform_fn)
     
     resource_prefix = resource_dir if resource_dir == "" or resource_dir.endswith("/") else resource_dir + "/"
     min_suffix = ".min" if minified else ""
@@ -267,21 +268,23 @@ def to_html(root, out=None, syntax_highlight="python", resource_dir="", minified
     out.endElement("html")
 
 
-
 def lines(input):
     return [l.rstrip('\n') for l in input]
 
 def cli(argv):
     parser = argparse.ArgumentParser(description="Generate interactive HTML documentation from example code")
-    parser.add_argument('-r', '--resource-dir', dest='resource_dir', metavar='DIR', default='resources',
-                        help='prepend directory DIR to the relative URLs of scripts and stylesheets')
     parser.add_argument('-l', '--highlight', dest='syntax_highlight', default='python', metavar='LANGUAGE',
-                        help='apply syntax highlighting for language LANGUAGE')
+                        help='apply syntax highlighting for language LANGUAGE (default: %(default)s)')
     parser.add_argument('-c', '--comment-start', dest='comment_start', default='#',
-                        help='the syntax used to start single-line comments')
+                        help='the syntax used to start single-line comments (default: %(default)s)')
     parser.add_argument('-o', '--output', dest='output', type=argparse.FileType('w'), default='-',
                         help='output file (default: write to stdout)')
-    parser.add_argument('source', type=argparse.FileType('r'), nargs='?', default='-',
+    parser.add_argument('-t', '--link-transform', dest='link_transform_fn', nargs=2, metavar=('REGEX','SUBSTITUTION'),
+                        default=None,
+                        help='transform link URLs by regex substitution (default: no transforms are applied)')
+    parser.add_argument('-r', '--resource-dir', dest='resource_dir', metavar='DIR', default='resources',
+                        help='prepend directory DIR to the relative URLs of scripts and stylesheets')
+    parser.add_argument('source', type=argparse.FileType('r'), nargs='?', default='-', metavar='file',
                         help='source file of example code (default: read from stdin)')
     
     args = parser.parse_args(argv[1:])
@@ -289,8 +292,9 @@ def cli(argv):
     to_html(lines_to_tagged_tree(lines(args.source), args.comment_start),
             resource_dir=args.resource_dir, 
             syntax_highlight=args.syntax_highlight,
+            link_transform_fn=identity if args.link_transform_fn is None else re_subn(*args.link_transform_fn),
             out=XMLGenerator(args.output))
-    
+
 
 if __name__ == '__main__':
     cli(sys.argv)

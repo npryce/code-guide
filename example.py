@@ -2,9 +2,10 @@
 
 #|| Button Blink
 #|| ============
-#|| This example extends the blink program to read from a GPIO input
-#|| pin connected to a push-button.  The LED will only blink while you
-#|| are holding the button down.
+#||
+#|| This example extends the [blink program](blink) to read from a
+#|| GPIO input pin connected to a push-button.  The LED will only
+#|| blink while you are holding the button down.
 
 from itertools import cycle
 from time import sleep
