@@ -9,12 +9,6 @@ import subprocess
 def contents_of(fname):
     return open(os.path.join(os.path.dirname(__file__), fname)).read()
 
-def version():
-    git_cmd = ["git", "describe", "--always", "--tags", "--match", "*.*.*.*"]
-    try:
-        return str(subprocess.check_output(git_cmd), 'utf8').strip()
-    except:
-        return "snapshot"
     
 class PyTest(TestCommand):
     def finalize_options(self):
@@ -30,11 +24,11 @@ class PyTest(TestCommand):
 
 
 setup(name='code-guide',
-      version=version(),
+      version="1.0.0",
       description='Turn example code into interactive HTML documentation',
-      long_description=contents_of('README.md'),
+      long_description=contents_of('README'),
       author='Nat Pryce',
-      author_email='software@natpryce.com',
+      author_email='sw@natpryce.com',
       url='http://natpryce.com',
       
       license="Apache 2.0. Bootstro is used under the MIT license.",
