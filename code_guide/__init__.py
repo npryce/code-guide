@@ -166,11 +166,11 @@ def element(out, name, attrs, text=None):
 
 _scripts = ["jquery-1.9.1{min}.js",
             "bootstrap/js/bootstrap{min}.js",
-           "bootstro/bootstro{min}.js",
-           "code-guide.js"]
+            "bootstro{min}.js",
+            "code-guide.js"]
     
 _stylesheets = ["bootstrap/css/bootstrap{min}.css",
-                "bootstro/bootstro{min}.css",
+                "bootstro{min}.css",
                 "pygments.css",
                 "code-guide.css"]
 
@@ -282,7 +282,7 @@ def cli(argv):
     parser.add_argument('-t', '--link-transform', dest='link_transform_fn', nargs=2, metavar=('REGEX','SUBSTITUTION'),
                         default=None,
                         help='transform link URLs by regex substitution (default: no transforms are applied)')
-    parser.add_argument('-r', '--resource-dir', dest='resource_dir', metavar='DIR', default='resources',
+    parser.add_argument('-r', '--resource-dir', dest='resource_dir', metavar='DIR', default='code_guide',
                         help='prepend directory DIR to the relative URLs of scripts and stylesheets')
     parser.add_argument('source', type=argparse.FileType('r'), nargs='?', default='-', metavar='file',
                         help='source file of example code (default: read from stdin)')

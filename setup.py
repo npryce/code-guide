@@ -53,10 +53,11 @@ setup(name='code-guide',
       
       provides=['code_guide'],
       packages=['code_guide'],
+      package_data={'': ['*.js', '*.css', 'boostrap/*/*']},
       scripts=['code-guide'],
       
       install_requires=["markdown==2.3.1", "pygments==1.6"],
       tests_require=['pytest==2.3.4', 'lxml'],
-
+      
       cmdclass = {'test': PyTest}
 )
