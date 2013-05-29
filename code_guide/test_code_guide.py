@@ -192,12 +192,12 @@ tree = root(
 
 
 scripts = ["bootstrap/js/bootstrap.min.js",
-           "bootstro/bootstro.min.js",
+           "bootstro.min.js",
            "jquery-1.9.1.min.js",
            "code-guide.js"]
     
 stylesheets = ["bootstrap/css/bootstrap.min.css",
-               "bootstro/bootstro.min.css",
+               "bootstro.min.css",
                "pygments.css",
                "code-guide.css"]
 
