@@ -1,27 +1,43 @@
 Code Guide
 ==========
 
-A tool that generates an interactive HTML explanation of how code works from unobtrusive markup of comments in the code. 
-The explanation is readable in the source, as well as in the generated documentation.
+A tool that generates an interactive HTML explanation of how code
+works from unobtrusive markup of comments in the code.  The
+explanation is readable in the source, as well as in the generated
+documentation.
 
 
 Installation
 ============
 
-Currently completely manual.  You can install dependencies with `pip install -r requirements.txt`.
+Install with pip:
 
-Run with: `python -m code_guide [options] <input-file>`.   Then copy shared resources (JavaScript and CSS) from resources/ to wherever you are saving generated documents.
-
-Run `python -m code_guide --help` for help on the command-line options.
-
-Installation via PyPI coming soon... 
+    pip install code-guide
 
 
-Very Brief Documentation
-========================
+Running The Tool
+================
 
-Mark up regions of code to be explained by adding line comments that immediately start with a "|" character at the start of the region, 
-and a line comment that starts with "|." at the end of the region.
+To convert a single file, _example.py_:
+
+    # This is where we are going to save generated HTML
+    mkdir outdir
+	
+	# Generate HTML from some example code    
+    code-guide example.py -o outdir/example.html --resource-dir=.
+	
+	# Extract the resources (CSS, JavaScript, etc.) used by the generated HTML
+	code-guide --extract-resources --resource-dir=outdir
+
+Run `code-guide --help` for more help on the command-line options.
+
+
+How to Mark Up Example Code
+===========================
+
+Mark up regions of code to be explained by adding line comments that
+immediately start with a "|" character at the start of the region, and
+a line comment that starts with "|." at the end of the region.
 
 E.g., in Python:
 
@@ -36,9 +52,13 @@ In Java:
     SomeCodeFactoryFactoryImpl.getSomeCodeFactory().getSomeCode().run();
     //|.
     
-The rest of this document describes using the tool with a language that has line comments starting with "#", but the documentation applies to just as well languages with a different line-comment syntax.
+The rest of this document describes using the tool with a language
+that has line comments starting with "#", but the documentation
+applies to just as well languages with a different line-comment
+syntax.
 
-Adjacent #| comments are treated as a single block of Markdown syntax.  Regions can be nested but not overlap.
+Adjacent #| comments are treated as a single block of Markdown syntax.
+Regions can be nested but not overlap.
 
     #| This if statement compares two numbers.
     #|
@@ -56,8 +76,11 @@ Adjacent #| comments are treated as a single block of Markdown syntax.  Regions 
     #|.
 
 
-The order in which explanations are presented to the reader can be controlled by adding indices in square brackets at the start of each #| comment block.  Indices start at 1.  
-Either all or none of the explanations must have an index.  If no explanations have an index, they are shown in the order they appear in the source code.
+The order in which explanations are presented to the reader can be
+controlled by adding indices in square brackets at the start of each
+#| comment block.  Indices start at 1.  Either all or none of the
+explanations must have an index.  If no explanations have an index,
+they are shown in the order they appear in the source code.
 
 
     #| [2] This statement will be explained second.
@@ -68,10 +91,14 @@ Either all or none of the explanations must have an index.  If no explanations h
     sys.exit(1)
     #|.
 
-The generated document can be given an introduction and/or end-note in markdown format with a block of adjacent lines that start with #||.  If the introduction has a top-level heading, the text of the heading is 
-used as the title of the generated HTML.
+The generated document can be given an introduction and/or end-note in
+markdown format with a block of adjacent lines that start with #||.
+If the introduction has a top-level heading, the text of the heading
+is used as the title of the generated HTML.
 
-Only the first and last block of text will be used.  Any others will be silently ignored (and may cause an error in future versions of the tool).
+Only the first and last block of text will be used.  Any others will
+be silently ignored (and may cause an error in future versions of the
+tool).
 
 
     #|| Hello World
