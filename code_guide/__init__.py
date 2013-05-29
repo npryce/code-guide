@@ -5,6 +5,10 @@ import re
 from collections import namedtuple
 from operator import itemgetter as item
 from itertools import groupby, islice
+import argparse
+import os
+from shutil import copyfileobj
+from pkg_resources import resource_listdir, resource_isdir, resource_stream
 import xml.sax
 from xml.sax.saxutils import XMLGenerator, XMLFilterBase
 from xml.etree.ElementTree import fromstring as etree_from_string
@@ -12,8 +16,6 @@ import markdown
 import pygments
 import pygments.lexers
 from pygments.formatters import HtmlFormatter
-import argparse
-
 
 _parsed_line = namedtuple('_parsed_line', ['group_fn', 'line', 'parts'])
 
@@ -268,30 +270,73 @@ def to_html(root, out=None, syntax_highlight="python", resource_dir="", minified
     out.endElement("html")
 
 
+def is_html_resource(r):
+    return not (r.endswith(".py") or r.endswith(".pyc"))
+
+
+def resource_names(d="."):
+    for n in resource_listdir(__name__, d):
+        r = d + "/" + n
+        
+        if resource_isdir(__name__, r):
+            for n2 in resource_names(r):
+                yield n2
+        elif is_html_resource(r):
+            yield r
+
+def extract_resource(r, basedir):
+    outf = os.path.join(basedir,r)
+    outdir = os.path.dirname(outf)
+    
+    if not os.path.exists(outdir):
+        os.makedirs(outdir)
+    
+    with resource_stream(__name__, r) as input, open(outf, "w") as output:
+        copyfileobj(input, output)
+
+
+def extract_resources_to(d):
+    for r in resource_names():
+        extract_resource(r, d)
+
+
 def lines(input):
     return [l.rstrip('\n') for l in input]
 
+
+def _only_extract_resources(args):
+    return args.source is None and args.output is None and args.extract_resources
+
+
 def cli(argv):
-    parser = argparse.ArgumentParser(description="Generate interactive HTML documentation from example code")
+    parser = argparse.ArgumentParser(description="Generate interactive HTML documentation from example code",
+                                     epilog="If --extract-resources is given but source and output are not, %(prog)s "
+                                            "only writes out the resources and does not convert stdin to stdout")
+
     parser.add_argument('-l', '--highlight', dest='syntax_highlight', default='python', metavar='LANGUAGE',
                         help='apply syntax highlighting for language LANGUAGE (default: %(default)s)')
     parser.add_argument('-c', '--comment-start', dest='comment_start', default='#',
                         help='the syntax used to start single-line comments (default: %(default)s)')
-    parser.add_argument('-o', '--output', dest='output', type=argparse.FileType('w'), default='-',
+    parser.add_argument('-o', '--output', dest='output', type=argparse.FileType('w'), default=None,
                         help='output file (default: write to stdout)')
     parser.add_argument('-t', '--link-transform', dest='link_transform_fn', nargs=2, metavar=('REGEX','SUBSTITUTION'),
                         default=None,
                         help='transform link URLs by regex substitution (default: no transforms are applied)')
-    parser.add_argument('-r', '--resource-dir', dest='resource_dir', metavar='DIR', default='code_guide',
+    parser.add_argument('-r', '--resource-dir', dest='resource_dir', metavar='RESOURCE_DIR', default='code_guide',
                         help='prepend directory DIR to the relative URLs of scripts and stylesheets')
-    parser.add_argument('source', type=argparse.FileType('r'), nargs='?', default='-', metavar='file',
+    parser.add_argument('-x', '--extract-resources', dest='extract_resources', default=False, action='store_true',
+                        help="extract resources to RESOURCE_DIR (default=no)")
+    parser.add_argument('source', type=argparse.FileType('r'), nargs='?', default=None, metavar='file',
                         help='source file of example code (default: read from stdin)')
     
     args = parser.parse_args(argv[1:])
     
-    to_html(lines_to_tagged_tree(lines(args.source), args.comment_start),
-            resource_dir=args.resource_dir, 
-            syntax_highlight=args.syntax_highlight,
-            link_transform_fn=identity if args.link_transform_fn is None else re_subn(*args.link_transform_fn),
-            out=XMLGenerator(args.output))
-
+    if not _only_extract_resources(args):
+        to_html(lines_to_tagged_tree(lines(args.source or sys.stdin), args.comment_start),
+                resource_dir=args.resource_dir,
+                syntax_highlight=args.syntax_highlight,
+                link_transform_fn=identity if args.link_transform_fn is None else re_subn(*args.link_transform_fn),
+                out=XMLGenerator(args.output or sys.stdout))
+    
+    if args.extract_resources:
+        extract_resources_to(args.resource_dir)
