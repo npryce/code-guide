@@ -1,0 +1,9 @@
+#!/usr/bin/env python2.7
+
+import sys
+import code_guide
+
+try:
+    code_guide.cli(sys.argv)
+except KeyboardInterrupt:
+    pass

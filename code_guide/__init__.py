@@ -295,7 +295,3 @@ def cli(argv):
             link_transform_fn=identity if args.link_transform_fn is None else re_subn(*args.link_transform_fn),
             out=XMLGenerator(args.output))
 
-
-if __name__ == '__main__':
-    cli(sys.argv)
-
