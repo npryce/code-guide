@@ -24,10 +24,7 @@ To convert a single file, _example.py_:
     mkdir outdir
 	
 	# Generate HTML from some example code    
-    code-guide example.py -o outdir/example.html --resource-dir=.
-	
-	# Extract the resources (CSS, JavaScript, etc.) used by the generated HTML
-	code-guide --extract-resources --resource-dir=outdir
+    code-guide example.py --extract-resources -o outdir/example.html
 
 Run `code-guide --help` for more help on the command-line options.
 
