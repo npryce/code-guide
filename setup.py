@@ -24,7 +24,7 @@ class PyTest(TestCommand):
 
 
 setup(name='code-guide',
-      version="1.0.1",
+      version="1.0.2",
       description='Turn example code into interactive HTML documentation',
       long_description=contents_of('README'),
       author='Nat Pryce',
