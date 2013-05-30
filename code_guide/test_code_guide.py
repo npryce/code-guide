@@ -153,6 +153,21 @@ def test_intro_without_title():
             line("a line")])
 
 
+def test_intro_with_blank_lines():
+    tree = lines_to_tagged_tree([
+            "#|| line 1",
+            "#||",
+            "#|| line 2",
+            "#|| ",
+            "#|| line 3",
+            "",
+            "a line"])
+    
+    assert tree == root(intro="line 1\n\nline 2\n\nline 3", children=[
+            line(""), 
+            line("a line")])
+
+
 def test_outro_with_title():
     tree = lines_to_tagged_tree([
             "#|| intro",

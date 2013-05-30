@@ -57,7 +57,7 @@ def _line_group(lines):
 
 def _parse_lines(lines, comment_start):
     comment_start_re = re.escape(comment_start)
-    intro_pattern = re.compile(r'^\s*' + comment_start_re + '\|\|( (?P<text>.+?))?$')
+    intro_pattern = re.compile(r'^\s*' + comment_start_re + '\|\|(\s*| (?P<text>.+?))$')
     region_start_pattern = re.compile(r'^\s*' + comment_start_re + '\|(( \[(?P<index>[0-9]+)\]\s*)? (?P<text>.*?))?$')
     region_end_pattern = re.compile(r'^\s*' + comment_start_re + '\|\.\s*$')
     
