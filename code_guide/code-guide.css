@@ -38,3 +38,7 @@ body {
 .code-guide-outro {
 	margin-bottom: 1em;
 }
+
+.code-guide-intro, .code-guide-outro {
+	margin-right: 25%;
+}
