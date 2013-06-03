@@ -39,7 +39,7 @@ HTML as separate steps.
 It's convenient to use Make to coordinate the translation of multiple
 files, as so:
 
-	EXAMPLES = $(wildcard examples/*.java)
+	EXAMPLES := $(wildcard examples/*.java)
 	EXAMPLE_DOCS = $(EXAMPLES:%.java=docs/%.html)
 	
 	docs: $(EXAMPLE_DOCS) docs/examples/code-guide.css
